@@ -12,4 +12,5 @@ keywords = ["js", "javascript", "minifier", "minify", "minification"]
 categories = ["compression", "command-line-utilities", "development-tools::build-utils", "web-programming"]
 repository = "https://github.com/wilsonzlin/esbuild-rs.git"
 
-[dependencies]
+[build-dependencies]
+force_remove = "0.1.1"
