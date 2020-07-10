@@ -5,14 +5,11 @@ fn main() {
         .arg("build")
         .arg("-buildmode=c-archive")
         .arg("-o")
-        .arg("libesbuild.a")
+        .arg(format!("{}/{}", env!("OUT_DIR"), "libesbuild.a"))
         .arg("esbuild.go")
         .status()
         .expect("compile Go library");
 
-    let path = "./";
-    let lib = "esbuild";
-
-    println!("cargo:rustc-link-search=native={}", path);
-    println!("cargo:rustc-link-lib=static={}", lib);
+    println!("cargo:rustc-link-search=native={}", env!("OUT_DIR"));
+    println!("cargo:rustc-link-lib=static={}", "esbuild");
 }
