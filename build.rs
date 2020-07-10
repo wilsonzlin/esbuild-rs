@@ -38,6 +38,11 @@ fn force_remove_dir_all(path: &PathBuf) -> () {
 fn main() {
     let out_dir = env::var("OUT_DIR").unwrap();
     let gopath = format!("{}/gopath", out_dir);
+    let out_name = if cfg!(target_os = "windows") {
+        "esbuild.lib"
+    } else {
+        "libesbuild.a"
+    };
 
     Command::new("go")
         .env("GOPATH", gopath.clone())
@@ -49,7 +54,7 @@ fn main() {
         .arg("build")
         .arg("-buildmode=c-archive")
         .arg("-o")
-        .arg(format!("{}/{}", out_dir, "libesbuild.a"))
+        .arg(format!("{}/{}", out_dir, out_name))
         .arg("esbuild.go")
         .status()
         .expect("compile Go library");
@@ -62,4 +67,8 @@ fn main() {
 
     println!("cargo:rustc-link-search=native={}", out_dir);
     println!("cargo:rustc-link-lib=static={}", "esbuild");
+    if cfg!(target_os = "macos") {
+        println!("cargo:rustc-link-lib=framework={}", "CoreFoundation");
+        println!("cargo:rustc-link-lib=framework={}", "Security");
+    };
 }
