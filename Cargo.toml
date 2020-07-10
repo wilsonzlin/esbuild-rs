@@ -3,6 +3,13 @@ name = "esbuild-rs"
 version = "0.0.1"
 authors = ["Wilson Lin <code@wilsonl.in>"]
 edition = "2018"
-include = ["/src/**/*", "/build.rs", "/Cargo.toml", "/libesbuild.a", "/libesbuild.h"]
+include = ["/src/**/*", "/build.rs", "/Cargo.toml", "/esbuild.go"]
+description = "FFI wrapper around esbuild, an extremely fast JS minifier written in Go"
+license = "MIT"
+homepage = "https://github.com/wilsonzlin/esbuild-rs"
+readme = "README.md"
+keywords = ["js", "javascript", "minifier", "minify", "minification"]
+categories = ["compression", "command-line-utilities", "development-tools::build-utils", "web-programming"]
+repository = "https://github.com/wilsonzlin/esbuild-rs.git"
 
 [dependencies]
