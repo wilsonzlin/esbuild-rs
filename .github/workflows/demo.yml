@@ -3,7 +3,7 @@ name: Build demo
 on: push
 
 jobs:
-  cli:
+  demo:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -32,5 +32,6 @@ jobs:
         if: runner.os == 'Windows'
         run: .\.github\workflows\gcc.ps1
       - name: Build CLI
+        working-directory: ./demo
         run: |
           cargo build --release -vvv
