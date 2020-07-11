@@ -31,7 +31,6 @@ jobs:
       - name: Set up GCC (Windows)
         if: runner.os == 'Windows'
         run: .\.github\workflows\gcc.ps1
-      - name: Build CLI
+      - name: Build demo
         working-directory: ./demo
-        run: |
-          cargo build --release -vvv
+        run: cargo build --release -vvv
