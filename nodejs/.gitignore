@@ -1,0 +1,11 @@
+/dist/
+
+node_modules/
+/package-lock.json
+
+/bench/package-lock.json
+
+/native/artifacts.json
+/native/Cargo.lock
+/native/index.node
+/native/target/

@@ -1,0 +1,17 @@
+[package]
+name = "native"
+publish = false
+version = "0.0.1"
+authors = ["Wilson Lin <code@wilsonl.in>"]
+edition = "2018"
+
+[lib]
+name = "esbuild_rs_nodejs_lib"
+crate-type = ["cdylib"]
+
+[build-dependencies]
+neon-build = "0.4.0"
+
+[dependencies]
+esbuild-rs = { path = "../.." }
+neon = "0.4.0"
