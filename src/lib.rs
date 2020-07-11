@@ -16,7 +16,7 @@ struct GoString {
 pub unsafe fn esbuild_unchecked<'i, 'o>(code: &'i [u8]) -> &'o [u8] {
     let go_string = GoString {
         a: code as *const [u8] as *const c_char,
-        b: (code.len() - 1) as i64,
+        b: code.len() as i64,
     };
     let mut out_len = 0;
     let result = MinifyJs(go_string, &mut out_len) as *mut u8;
