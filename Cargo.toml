@@ -1,4 +1,4 @@
-[package]
+{[package]
 name = "esbuild-rs"
 version = "0.0.5"
 authors = ["Wilson Lin <code@wilsonl.in>"]
@@ -11,3 +11,11 @@ readme = "README.md"
 keywords = ["js", "javascript", "minifier", "minify", "minification"]
 categories = ["compression", "command-line-utilities", "development-tools::build-utils", "web-programming"]
 repository = "https://github.com/wilsonzlin/esbuild-rs.git"
+
+[features]
+default = []
+use-dylib = ["dlopen", "dlopen_derive"]
+
+[dependencies]
+dlopen = { version = "0.1.8", optional = true }
+dlopen_derive = { version = "0.1.4", optional = true }

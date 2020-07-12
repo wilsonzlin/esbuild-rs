@@ -35,6 +35,7 @@ fn force_remove_dir_all(path: &PathBuf) -> () {
     force_remove_dir(&path);
 }
 
+#[cfg(not(feature = "use-dylib"))]
 fn main() {
     let out_dir = env::var("OUT_DIR").unwrap();
     let gopath = format!("{}/gopath", out_dir);
