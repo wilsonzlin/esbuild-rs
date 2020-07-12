@@ -42,11 +42,8 @@ fn main() {}
 fn main() {
     let out_dir = env::var("OUT_DIR").unwrap();
     let gopath = format!("{}/gopath", out_dir);
-    let out_name = if cfg!(target_os = "windows") {
-        "esbuild.lib"
-    } else {
-        "libesbuild.a"
-    };
+    // This is the name on Windows as well because we use the gnu toolchain.
+    let out_name = "libesbuild.a";
 
     Command::new("go")
         .env("GOPATH", gopath.clone())
