@@ -1,10 +1,13 @@
 package main
 
 import "C"
-import "github.com/evanw/esbuild/pkg/api"
+import (
+	"github.com/evanw/esbuild/pkg/api"
+	"unsafe"
+)
 
 //export MinifyJs
-func MinifyJs(code string, out_len *C.ulonglong) *C.byte {
+func MinifyJs(code string, out_len *C.ulonglong) unsafe.Pointer {
 	result := api.Transform(code, api.TransformOptions{
 		MinifyWhitespace:  true,
 		MinifyIdentifiers: true,
