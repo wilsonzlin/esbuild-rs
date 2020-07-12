@@ -35,6 +35,9 @@ fn force_remove_dir_all(path: &PathBuf) -> () {
     force_remove_dir(&path);
 }
 
+#[cfg(feature = "use-dylib")]
+fn main() {}
+
 #[cfg(not(feature = "use-dylib"))]
 fn main() {
     let out_dir = env::var("OUT_DIR").unwrap();
@@ -47,11 +50,13 @@ fn main() {
 
     Command::new("go")
         .env("GOPATH", gopath.clone())
+        .current_dir("lib")
         .arg("get")
         .arg("./");
 
     Command::new("go")
         .env("GOPATH", gopath.clone())
+        .current_dir("lib")
         .arg("build")
         .arg("-buildmode=c-archive")
         .arg("-o")
@@ -61,7 +66,7 @@ fn main() {
         .expect("compile Go library");
 
     // Otherwise Cargo will complain that we've modified files outside OUT_DIR.
-    fs::remove_file("go.sum").expect("remove go.sum");
+    fs::remove_file("lib/go.sum").expect("remove go.sum");
     // Go package manager makes dependency files read only, causing issues with rebuilding and
     // clearing.
     force_remove_dir_all(&PathBuf::from(gopath));

@@ -1,9 +1,11 @@
 use std::ffi::CString;
 use std::os::raw::{c_char, c_ulonglong, c_void};
-use std::ffi::{CStr, CString};
-use std::os::raw::c_char;
+#[cfg(feature = "use-dylib")]
 use dlopen::wrapper::{Container, WrapperApi};
+#[cfg(feature = "use-dylib")]
 use dlopen_derive::WrapperApi;
+#[cfg(feature = "use-dylib")]
+use lazy_static::lazy_static;
 
 mod test;
 
@@ -15,12 +17,12 @@ extern "C" {
 #[cfg(feature = "use-dylib")]
 #[derive(WrapperApi)]
 struct Api {
-    MinifyJs: unsafe extern "C" fn(code: GoString) -> *const c_char,
+    MinifyJs: unsafe extern "C" fn(code: GoString, out_len: *mut c_ulonglong) -> *const c_void,
 }
 
 #[cfg(feature = "use-dylib")]
 lazy_static! {
-    let mut ref DYLIB_CONT: Container<Api> = unsafe {
+    static ref DYLIB_CONT: Container<Api> = unsafe {
         Container::load("esbuild.dll")
     }.expect("open dynamic library");
 }
@@ -42,7 +44,7 @@ pub unsafe fn esbuild_unchecked<'i, 'o>(code: &'i [u8]) -> &'o [u8] {
     let result = MinifyJs(go_string, &mut out_len) as *mut u8;
 
     #[cfg(feature = "use-dylib")]
-    let result = CONT.MinifyJs(go_string, &mut out_len) as *mut u8;
+    let result = DYLIB_CONT.MinifyJs(go_string, &mut out_len) as *mut u8;
 
     core::slice::from_raw_parts(result, out_len as usize)
 }

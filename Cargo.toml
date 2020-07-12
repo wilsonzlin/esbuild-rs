@@ -1,9 +1,9 @@
-{[package]
+[package]
 name = "esbuild-rs"
 version = "0.0.5"
 authors = ["Wilson Lin <code@wilsonl.in>"]
 edition = "2018"
-include = ["/src/**/*", "/build.rs", "/Cargo.toml", "/esbuild.go", "/go.mod"]
+include = ["/src/**/*", "/build.rs", "/Cargo.toml", "/lib/esbuild.go", "/lib/go.mod"]
 description = "FFI wrapper around esbuild, an extremely fast JS minifier written in Go"
 license = "MIT"
 homepage = "https://github.com/wilsonzlin/esbuild-rs"
@@ -14,8 +14,9 @@ repository = "https://github.com/wilsonzlin/esbuild-rs.git"
 
 [features]
 default = []
-use-dylib = ["dlopen", "dlopen_derive"]
+use-dylib = ["dlopen", "dlopen_derive", "lazy_static"]
 
 [dependencies]
 dlopen = { version = "0.1.8", optional = true }
 dlopen_derive = { version = "0.1.4", optional = true }
+lazy_static = { version = "1.4.0", optional = true }
