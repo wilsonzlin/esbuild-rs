@@ -6,7 +6,7 @@
     "dist/**"
   ],
   "scripts": {
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist && neon clean",
     "build": "npm run clean && tsc && neon build --release && mv native/index.node dist/esbuild.node"
   },
   "dependencies": {

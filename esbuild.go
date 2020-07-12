@@ -14,7 +14,7 @@ func MinifyJs(code string, out_len *C.ulonglong) unsafe.Pointer {
 		MinifySyntax:      true,
 	})
 
-	*out_len = len(result.JS)
+	*out_len = C.ulonglong(len(result.JS))
 
 	return C.CBytes(result.JS)
 }
