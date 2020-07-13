@@ -1,20 +1,20 @@
 const native = require('./native.node');
 
-const requests = new Map<number, [Function, Function]>();
+const requests = new Map<number, [(minCodeLen: number) => void, (error: Error) => void]>();
 let nextId = 0;
 
 export const startService = () => {
-  native.startService((err: Error, id: number, buffer: Buffer) => {
+  native.startService((err: Error | undefined, id: number, minCodeLen: number) => {
     const req = requests.get(id);
     if (!req) {
-      throw new Error(`Unknown request ID ${id} with response ${buffer.toString()}`);
+      throw new Error(`Unknown request ID ${id}`);
     }
     requests.delete(id);
     const [resolve, reject] = req;
     if (err) {
       reject(err);
     } else {
-      resolve(buffer);
+      resolve(minCodeLen);
     }
   });
 };
@@ -25,6 +25,9 @@ export const stopService = () => {
 
 export const minify = (codeUtf8: Buffer): Promise<Buffer> => new Promise((resolve, reject) => {
   let id = nextId++;
-  requests.set(id, [resolve, reject]);
-  native.minify(id, codeUtf8);
+  let buffer: Buffer;
+  // Slicing does not create a new buffer.
+  const resolveWithValue = (minCodeLen: number) => resolve(buffer.slice(0, minCodeLen));
+  requests.set(id, [resolveWithValue, reject]);
+  buffer = native.minify(id, codeUtf8);
 });

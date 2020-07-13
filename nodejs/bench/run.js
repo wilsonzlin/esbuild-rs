@@ -19,7 +19,7 @@ const transformOptions = {
   minifyWhitespace: true,
 };
 
-const tests = fs.readdirSync(path.join(__dirname, 'tests')).map(f => {
+const tests = [...TESTS_FILTER].map(f => {
   const buf = fs.readFileSync(path.join(__dirname, 'tests', f));
   return ({
     name: f,
@@ -32,10 +32,8 @@ const testMinifier = async (minifierName, minifier) => {
   const promises = [];
   const start = Date.now();
   for (const {name, sourceBuffer, sourceText} of tests) {
-    if (TESTS_FILTER.has(name)) {
-      for (let i = 0; i < ITERATIONS_PER_TEST; i++) {
-        promises.push(minifier(sourceBuffer, sourceText));
-      }
+    for (let i = 0; i < ITERATIONS_PER_TEST; i++) {
+      promises.push(minifier(sourceBuffer, sourceText));
     }
   }
   await Promise.all(promises);

@@ -1,7 +1,8 @@
 package main
 
+// #include <string.h>
+//
 // typedef void (*minify_js_callback) (
-//   void*,
 //   void*,
 //   unsigned long long
 // );
@@ -9,10 +10,9 @@ package main
 // static void call_callback(
 //   minify_js_callback f,
 //   void* cb_data,
-//   void* output,
 //   unsigned long long output_len
 // ) {
-//   f(cb_data, output, output_len);
+//   f(cb_data, output_len);
 // }
 import "C"
 import (
@@ -22,6 +22,7 @@ import (
 
 func KickoffMinifyJs(
 	code string,
+	out unsafe.Pointer,
 	cb C.minify_js_callback,
 	cbData unsafe.Pointer,
 ) {
@@ -32,17 +33,20 @@ func KickoffMinifyJs(
 	})
 
 	resCode := result.JS
-	ptr := C.CBytes(resCode)
-	C.call_callback(cb, cbData, ptr, C.ulonglong(len(resCode)))
+	resLen := len(resCode)
+
+	C.memcpy(out, unsafe.Pointer(&resCode[0]), C.ulong(resLen))
+	C.call_callback(cb, cbData, C.ulonglong(resLen))
 }
 
 //export MinifyJs
 func MinifyJs(
 	code string,
+	out unsafe.Pointer,
 	cb C.minify_js_callback,
 	cbData unsafe.Pointer,
 ) {
-	go KickoffMinifyJs(code, cb, cbData)
+	go KickoffMinifyJs(code, out, cb, cbData)
 }
 
 func main() {}
