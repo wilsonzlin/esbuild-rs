@@ -11,5 +11,4 @@ else
   out_name="libesbuild.a"
 fi
 
-go get ./
 go build -buildmode=c-archive -o build/$out_name native/esbuild.go

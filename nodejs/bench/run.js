@@ -31,7 +31,7 @@ const tests = [...TESTS_FILTER].map(f => {
 const testMinifier = async (minifierName, minifier) => {
   const promises = [];
   const start = Date.now();
-  for (const {name, sourceBuffer, sourceText} of tests) {
+  for (const {sourceBuffer, sourceText} of tests) {
     for (let i = 0; i < ITERATIONS_PER_TEST; i++) {
       promises.push(minifier(sourceBuffer, sourceText));
     }
