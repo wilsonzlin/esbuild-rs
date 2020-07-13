@@ -124,7 +124,7 @@ void minify_js_complete_handler(
   data->invocation_data = invocation_data;
   data->min_code_len = min_code_len;
   if (napi_call_threadsafe_function(js_receiver, (void*) data, napi_tsfn_nonblocking) != napi_ok) {
-    // TODO
+    // TODO Can't really do much here...
   }
 }
 
@@ -148,10 +148,9 @@ napi_value node_method_start_service(napi_env env, napi_callback_info info) {
 
   napi_value js_callback_arg = argv[0];
   napi_valuetype arg_type;
-  napi_status get_arg_type_status =
-    napi_typeof(env, js_callback_arg, &arg_type);
-  if (get_arg_type_status != napi_ok) {
-    // TODO
+  if (napi_typeof(env, js_callback_arg, &arg_type) != napi_ok) {
+    napi_throw_error(env, "INTERR_GET_ARG_TYPE_FAILED", "Failed to get argument type");
+    return undefined;
   }
   if (arg_type != napi_function) {
     napi_throw_type_error(env, "NOTAFN", "First argument is not a function");

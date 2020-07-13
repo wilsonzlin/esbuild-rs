@@ -35,6 +35,7 @@ func KickoffMinifyJs(
 	resCode := result.JS
 	resLen := len(resCode)
 
+	// TODO Check that minified code can fit in buffer.
 	C.memcpy(out, unsafe.Pointer(&resCode[0]), C.ulong(resLen))
 	C.call_callback(cb, cbData, C.ulonglong(resLen))
 }
