@@ -10,7 +10,7 @@ const TESTS_FILTER = new Set([
   'three',
   'plotly',
 ]);
-const ITERATIONS_PER_TEST = 100;
+const ITERATIONS_PER_TEST = 10;
 
 const transformOptions = {
   minify: true,
@@ -44,6 +44,8 @@ const testMinifier = async (minifierName, minifier) => {
 };
 
 (async () => {
+  esbuildNative.startService();
+
   for (const {name, sourceBuffer, sourceText} of tests) {
     // First, ensure they produce identical output.
     const expected = (await esbuild.transform(sourceText, transformOptions)).js;
@@ -59,5 +61,9 @@ const testMinifier = async (minifierName, minifier) => {
   await testMinifier('esbuild', (_, text) => svc.transform(text, transformOptions));
   svc.stop();
 
-  await testMinifier('esbuild-rs', (buf, _) => esbuildNative.minify(buf));
-})();
+  await testMinifier('esbuild-native', (buf, _) => esbuildNative.minify(buf));
+  esbuildNative.stopService();
+})().catch(err => {
+  console.error(err);
+  process.exit(1);
+});

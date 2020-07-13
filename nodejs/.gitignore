@@ -5,7 +5,6 @@ node_modules/
 
 /bench/package-lock.json
 
-/native/artifacts.json
-/native/Cargo.lock
-/native/index.node
-/native/target/
+/go.sum
+/build/
+/tmp/
