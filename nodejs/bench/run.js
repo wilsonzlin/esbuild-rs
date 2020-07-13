@@ -29,15 +29,17 @@ const tests = [...TESTS_FILTER].map(f => {
   });
 });
 
+const textTestsMultiplied = tests.flatMap(({sourceText}) =>
+  Array.from({length: ITERATIONS_PER_TEST}, () => sourceText)
+);
+
+const bufferTestsMultiplied = tests.flatMap(({sourceBuffer}) =>
+  Array.from({length: ITERATIONS_PER_TEST}, () => sourceBuffer)
+);
+
 const testMinifier = async (minifierName, minifier) => {
-  const promises = [];
   const start = Date.now();
-  for (const {sourceBuffer, sourceText} of tests) {
-    for (let i = 0; i < ITERATIONS_PER_TEST; i++) {
-      promises.push(minifier(sourceBuffer, sourceText));
-    }
-  }
-  await Promise.all(promises);
+  await minifier();
   const time = Date.now() - start;
   console.log(`${minifierName} took ${time} ms`);
 };
@@ -48,7 +50,7 @@ const testMinifier = async (minifierName, minifier) => {
   for (const {name, sourceBuffer, sourceText} of tests) {
     // First, ensure they produce identical output.
     const expected = (await esbuild.transform(sourceText, transformOptions)).js;
-    const got = (await esbuildNative.minify(sourceBuffer)).toString();
+    const got = (await esbuildNative.minify([sourceBuffer]))[0].toString();
     if (expected !== got) {
       fs.writeFileSync('expected.js', expected);
       fs.writeFileSync('got.js', got);
@@ -57,10 +59,10 @@ const testMinifier = async (minifierName, minifier) => {
   }
 
   const svc = await esbuild.startService();
-  await testMinifier('esbuild', (_, text) => svc.transform(text, transformOptions));
+  await testMinifier('esbuild', () => Promise.all(textTestsMultiplied.map(text => svc.transform(text, transformOptions))));
   svc.stop();
 
-  await testMinifier('esbuild-native', (buf, _) => esbuildNative.minify(buf));
+  await testMinifier('esbuild-native', () => esbuildNative.minify(bufferTestsMultiplied));
   esbuildNative.stopService();
 })().catch(err => {
   console.error(err);

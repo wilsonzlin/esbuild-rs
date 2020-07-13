@@ -12,19 +12,23 @@ bool js_receiver_created = false;
 napi_threadsafe_function js_receiver;
 
 static char const* JS_RECEIVER_DESC = "esbuild-native JavaScript receiver callback";
+static char const* ERRMSG_INTERR_CREATE_RES_ARRAY_FAILED = "Failed to create result buffers array";
 static char const* ERRMSG_INTERR_CREATE_RES_BUFFER_FAILED = "Failed to create result buffer";
+static char const* ERRMSG_INTERR_SET_RES_BUFFER_FAILED = "Failed to add result buffer to array";
 
 #define errmsg(env, const_str, out) napi_create_string_utf8(env, const_str, sizeof(const_str) - 1, out)
 
 struct invocation_data {
+  GoString* gostrs;
   napi_deferred deferred;
-  napi_ref src_buffer_ref;
+  napi_ref src_buffers_array_ref;
 };
 
 struct call_js_receiver_data {
   struct invocation_data* invocation_data;
-  void* min_code;
-  unsigned long long min_code_len;
+  void** min_codes;
+  unsigned long long* min_code_lens;
+  unsigned long long codes_len;
 };
 
 void call_js_receiver(
@@ -37,20 +41,37 @@ void call_js_receiver(
   napi_get_undefined(env, &undefined);
 
   napi_value error_msg = undefined;
-  napi_value res_buffer = undefined;
+  napi_value res_array = undefined;
 
   struct call_js_receiver_data* data = (struct call_js_receiver_data*) data_raw;
   struct invocation_data* invocation_data = (struct invocation_data*) data->invocation_data;
 
-  // Create Node.js buffer from minified code in C memory.
-  if (napi_create_external_buffer(env, data->min_code_len, data->min_code, NULL, NULL, &res_buffer) != napi_ok) {
+  // Create Node.js buffers array for storing result buffers.
+  if (napi_create_array_with_length(env, data->codes_len, &res_array) != napi_ok) {
+    errmsg(env, ERRMSG_INTERR_CREATE_RES_ARRAY_FAILED, &error_msg);
+    goto finally;
+  }
+
+  // If something fails in the middle of this loop, any created JS values will get GCed.
+  for (unsigned long long i = 0; i < data->codes_len; i++) {
+    void* min_code = data->min_codes[i];
+    unsigned long long min_code_len = data->min_code_lens[i];
+
+    // Create Node.js buffer from minified code in C memory.
+    napi_value res_buffer;
+    if (napi_create_external_buffer(env, min_code_len, min_code, NULL, NULL, &res_buffer) != napi_ok) {
       errmsg(env, ERRMSG_INTERR_CREATE_RES_BUFFER_FAILED, &error_msg);
       goto finally;
+    }
+    if (napi_set_element(env, res_array, i, res_buffer) != napi_ok) {
+      errmsg(env, ERRMSG_INTERR_SET_RES_BUFFER_FAILED, &error_msg);
+      goto finally;
+    }
   }
 
 finally:
-  // Release source buffer.
-  napi_delete_reference(env, invocation_data->src_buffer_ref);
+  // Release source buffers array.
+  napi_delete_reference(env, invocation_data->src_buffers_array_ref);
 
   if (error_msg != undefined) {
     napi_value error = undefined;
@@ -59,23 +80,28 @@ finally:
     napi_reject_deferred(env, invocation_data->deferred, error);
   } else {
     // Can't do much if this fails.
-    napi_resolve_deferred(env, invocation_data->deferred, res_buffer);
+    napi_resolve_deferred(env, invocation_data->deferred, res_array);
   }
 
+  free(invocation_data->gostrs);
   free(invocation_data);
+  free(data->min_codes);
+  free(data->min_code_lens);
   free(data);
 }
 
 void minify_js_complete_handler(
   void* invocation_data,
-  void* min_code,
-  unsigned long long min_code_len
+  void** min_codes,
+  unsigned long long* min_code_lens,
+  unsigned long long codes_len
 ) {
   // Can't do much if this fails.
   struct call_js_receiver_data* data = malloc(sizeof(struct call_js_receiver_data));
   data->invocation_data = invocation_data;
-  data->min_code = min_code;
-  data->min_code_len = min_code_len;
+  data->min_codes = min_codes;
+  data->min_code_lens = min_code_lens;
+  data->codes_len = codes_len;
   // Can't do much if this fails.
   napi_call_threadsafe_function(js_receiver, (void*) data, napi_tsfn_nonblocking);
 }
@@ -160,25 +186,53 @@ napi_value node_method_minify(napi_env env, napi_callback_info info) {
 
   // Get the arguments.
   if (napi_get_cb_info(env, info, &argc, argv, &_this, &_data) != napi_ok) {
-    napi_throw_error(env, "INTERR_GET_CB_INFO_FAILED", "Failed to get callback info");
+    napi_throw_error(env, "INTERR_GET_CB_INFO_FAILED", "Failed to get arguments");
     return undefined;
   }
 
-  // Ensure buffer lives long enough until minification has finished.
-  napi_value buffer_arg = argv[0];
-  napi_ref buffer_arg_ref;
-  if (napi_create_reference(env, buffer_arg, 1, &buffer_arg_ref) != napi_ok) {
-    napi_throw_error(env, "INTERR_CREATE_SRC_BUFFER_REF", "Failed to create reference for source buffer");
+  // Ensure array lives long enough until minification has finished.
+  napi_value array_arg = argv[0];
+  napi_ref array_arg_ref;
+  if (napi_create_reference(env, array_arg, 1, &array_arg_ref) != napi_ok) {
+    napi_throw_error(env, "INTERR_CREATE_SRC_BUFFER_REF", "Failed to create reference for source buffers array");
     return undefined;
   }
 
-  // Get pointer to bytes from buffer.
-  void* buffer_data;
-  size_t buffer_len;
-  if (napi_get_buffer_info(env, buffer_arg, &buffer_data, &buffer_len) != napi_ok
-      || buffer_len == 0 || buffer_data == NULL) {
-    napi_throw_error(env, "INTERR_GET_SRC_BUFFER_INFO", "Failed to read source buffer");
+  uint32_t array_len;
+  if (napi_get_array_length(env, array_arg, &array_len) != napi_ok) {
+    napi_throw_error(env, "INTERR_GET_ARRAY_LEN", "Failed to read length of source buffers array");
     return undefined;
+  }
+
+  // TODO Free this on failure.
+  GoString* gostrs = malloc(sizeof(GoString) * array_len);
+  GoSlice buffers_as_goslice = {
+    .data = gostrs,
+    .len = array_len,
+    .cap = array_len,
+  };
+  // If something fails in the middle of this loop, any created JS values will get GCed.
+  for (uint32_t i = 0; i < array_len; i++) {
+    napi_value buffer_elem;
+    if (napi_get_element(env, array_arg, i, &buffer_elem) != napi_ok) {
+      napi_throw_error(env, "GET_ARRAY_ELEM", "Failed to get source buffers array element");
+      return undefined;
+    }
+
+    // Get pointer to bytes from buffer.
+    void* buffer_data;
+    size_t buffer_len;
+    if (napi_get_buffer_info(env, buffer_elem, &buffer_data, &buffer_len) != napi_ok
+        || buffer_len == 0 || buffer_data == NULL) {
+      napi_throw_error(env, "INTERR_GET_SRC_BUFFER_INFO", "Failed to read source buffer");
+      return undefined;
+    }
+
+    GoString buffer_as_gostr = {
+      .p = (char const*) buffer_data,
+      .n = buffer_len,
+    };
+    gostrs[i] = buffer_as_gostr;
   }
 
   napi_deferred deferred;
@@ -188,18 +242,14 @@ napi_value node_method_minify(napi_env env, napi_callback_info info) {
     return undefined;
   }
 
-  GoString buffer_as_gostr = {
-    .p = (char const*) buffer_data,
-    .n = buffer_len,
-  };
-
   // TODO Maybe we can avoid the safety, speed, and complexity costs of memory allocation and just pass these to Go?
   struct invocation_data* invocation_data = malloc(sizeof(struct invocation_data));
+  invocation_data->gostrs = gostrs;
   invocation_data->deferred = deferred;
-  invocation_data->src_buffer_ref = buffer_arg_ref;
+  invocation_data->src_buffers_array_ref = array_arg_ref;
 
   MinifyJs(
-    buffer_as_gostr,
+    buffers_as_goslice,
     &minify_js_complete_handler,
     (void*) invocation_data
   );
