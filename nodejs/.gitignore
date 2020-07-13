@@ -6,4 +6,5 @@ node_modules/
 /bench/package-lock.json
 
 /go.sum
+/gobuild/
 /build/

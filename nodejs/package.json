@@ -7,10 +7,11 @@
   ],
   "scripts": {
     "build-init": "node-gyp configure",
-    "build": "go build -buildmode=c-archive -o build/libesbuild.a native/esbuild.go && node-gyp build && cp build/Release/binding.node dist/index.node",
-    "clean": "node-gyp clean && rimraf build && rimraf dist"
+    "build": "go build -buildmode=c-archive -o gobuild/libesbuild.a native/esbuild.go && node-gyp build && mkdirp dist && cp build/Release/binding.node dist/index.node",
+    "clean": "node-gyp clean && rimraf build && rimraf dist && rimraf gobuild"
   },
   "devDependencies": {
+    "mkdirp": "^1.0.4",
     "node-gyp": "^7.0.0",
     "rimraf": "^3.0.2"
   }

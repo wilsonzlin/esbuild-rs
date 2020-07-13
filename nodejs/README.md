@@ -13,3 +13,5 @@ To test it out, open `node` and `require('.')`. You'll need to call `startServic
 ## Benchmarking
 
 Install the dependencies in [bench](./bench), and then run `node bench/run.js`.
+
+<img src="./bench/results.svg">

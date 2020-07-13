@@ -5,7 +5,7 @@
 #define NAPI_VERSION 4
 #include <node_api.h>
 
-#include "../build/libesbuild.h"
+#include <libesbuild.h>
 
 // We need to use a threadsafe_function as the Goroutines can call us from any thread.
 bool js_receiver_created = false;
