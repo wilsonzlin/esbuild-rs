@@ -7,11 +7,14 @@
 
 #include "../build/libesbuild.h"
 
+// We need to use a threadsafe_function as the Goroutines can call us from any thread.
 bool js_receiver_created = false;
 napi_threadsafe_function js_receiver;
 
 static char const* JS_RECEIVER_DESC = "esbuild-native JavaScript receiver callback";
 static char const* ERRMSG_INTERR_CREATE_RES_BUFFER_FAILED = "Failed to create result buffer";
+
+#define errmsg(env, const_str, out) napi_create_string_utf8(env, const_str, sizeof(const_str) - 1, out)
 
 struct invocation_data {
   napi_deferred deferred;
@@ -41,17 +44,12 @@ void call_js_receiver(
 
   // Create Node.js buffer from minified code in C memory.
   if (napi_create_external_buffer(env, data->min_code_len, data->min_code, NULL, NULL, &res_buffer) != napi_ok) {
-      napi_create_string_utf8(
-        env,
-        ERRMSG_INTERR_CREATE_RES_BUFFER_FAILED,
-        sizeof(ERRMSG_INTERR_CREATE_RES_BUFFER_FAILED) - 1,
-        &error_msg
-      );
+      errmsg(env, ERRMSG_INTERR_CREATE_RES_BUFFER_FAILED, &error_msg);
       goto finally;
   }
 
 finally:
-  // Free source buffer.
+  // Release source buffer.
   napi_delete_reference(env, invocation_data->src_buffer_ref);
 
   if (error_msg != undefined) {
@@ -195,7 +193,6 @@ napi_value node_method_minify(napi_env env, napi_callback_info info) {
     .n = buffer_len,
   };
 
-  // TODO This will be freed later in the happy path, but check error paths too (including outside this function).
   // TODO Maybe we can avoid the safety, speed, and complexity costs of memory allocation and just pass these to Go?
   struct invocation_data* invocation_data = malloc(sizeof(struct invocation_data));
   invocation_data->deferred = deferred;
