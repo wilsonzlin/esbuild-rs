@@ -4,11 +4,11 @@ Experimental native esbuild library for Node.js.
 
 ## Building
 
-You'll need Rust, Go, and Node.js.
+You'll need Go and Node.js.
 
-Install the dependencies in this folder using `npm i`, and then run `npm run build`.
+Install the dependencies in this folder using `npm i`, and then run `npm run build-native-init` and `npm run build`.
 
-To test it out, open `node` and `require('.')`. There is only one function right now; see [src/index.ts](src/index.ts).
+To test it out, open `node` and `require('.')`. You'll need to call `startService((err, id, minified) => ...)` before using `minify(id, source)`, and then `stopService` after you're done.
 
 ## Benchmarking
 
