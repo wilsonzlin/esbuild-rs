@@ -7,7 +7,7 @@
   ],
   "scripts": {
     "build-native-init": "go get ./ && node-gyp configure",
-    "build-native": "./build-go.sh && node-gyp build",
+    "build-native": "go build -buildmode=c-archive -o build/libesbuild.a native/esbuild.go && node-gyp build",
     "build": "npm run build-native && mv build/Release/binding.node dist/index.node"
   },
   "devDependencies": {
