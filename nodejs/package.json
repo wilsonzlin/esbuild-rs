@@ -6,9 +6,8 @@
     "dist/**"
   ],
   "scripts": {
-    "build-native-init": "node-gyp configure",
-    "build-native": "go build -buildmode=c-archive -o build/libesbuild.a native/esbuild.go && node-gyp build",
-    "build": "npm run build-native && mv build/Release/binding.node dist/index.node",
+    "build-init": "node-gyp configure",
+    "build": "go build -buildmode=c-archive -o build/libesbuild.a native/esbuild.go && node-gyp build && cp build/Release/binding.node dist/index.node",
     "clean": "node-gyp clean && rimraf build && rimraf dist"
   },
   "devDependencies": {
