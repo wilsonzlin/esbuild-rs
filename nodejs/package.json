@@ -11,8 +11,11 @@
     "clean": "node-gyp clean && rimraf build && rimraf dist && rimraf gobuild"
   },
   "devDependencies": {
+    "esbuild": "^0.6.0",
     "mkdirp": "^1.0.4",
     "node-gyp": "^7.0.0",
-    "rimraf": "^3.0.2"
+    "rimraf": "^3.0.2",
+    "vega": "^5.13.0",
+    "vega-lite": "^4.13.1"
   }
 }

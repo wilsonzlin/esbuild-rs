@@ -4,7 +4,7 @@ const vega = require('vega');
 const vegaLite = require('vega-lite');
 
 const esbuild = require('esbuild');
-const esbuildNative = require('esbuild-native');
+const esbuildNative = require('..');
 
 const TESTS_FILTER = new Set([
   'react.development',
