@@ -8,6 +8,7 @@ const TESTS_FILTER = new Set([
   'react.development',
   'c3',
   'three',
+  'aws-sdk',
   'plotly',
 ]);
 const ITERATIONS_PER_TEST = 10;
