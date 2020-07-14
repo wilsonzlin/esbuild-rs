@@ -14,7 +14,7 @@ napi_threadsafe_function js_receiver;
 static char const* JS_RECEIVER_DESC = "esbuild-native JavaScript receiver callback";
 static char const* ERRMSG_INTERR_CREATE_RES_BUFFER_FAILED = "Failed to create result buffer";
 
-#define errmsg(env, const_str, out) napi_create_string_utf8(env, const_str, sizeof(const_str) - 1, out)
+#define napi_conststr(env, const_str, out) napi_create_string_utf8(env, const_str, sizeof(const_str) - 1, out)
 
 struct invocation_data {
   napi_deferred deferred;
@@ -44,7 +44,7 @@ void call_js_receiver(
 
   // Create Node.js buffer from minified code in C memory.
   if (napi_create_external_buffer(env, data->min_code_len, data->min_code, NULL, NULL, &res_buffer) != napi_ok) {
-      errmsg(env, ERRMSG_INTERR_CREATE_RES_BUFFER_FAILED, &error_msg);
+      napi_conststr(env, ERRMSG_INTERR_CREATE_RES_BUFFER_FAILED, &error_msg);
       goto finally;
   }
 
@@ -90,12 +90,7 @@ napi_value node_method_start_service(napi_env env, napi_callback_info info) {
   }
 
   napi_value js_receiver_desc;
-  if (napi_create_string_utf8(
-    env,
-    JS_RECEIVER_DESC,
-    sizeof(JS_RECEIVER_DESC) - 1,
-    &js_receiver_desc
-  ) != napi_ok) {
+  if (napi_conststr(env, JS_RECEIVER_DESC, &js_receiver_desc) != napi_ok) {
     napi_throw_error(env, "INTERR_CREATE_JS_RECEIVER_DESC_FAILED", "Failed to create JS receiver callback description string");
     return undefined;
   }
