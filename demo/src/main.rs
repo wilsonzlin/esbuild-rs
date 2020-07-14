@@ -1,5 +1,5 @@
 use esbuild_rs::esbuild;
 
 fn main() {
-    println!("{}", esbuild("let ax = 1;"));
+    println!("{}", std::str::from_utf8(esbuild(b"let ax = 1;")).unwrap());
 }
