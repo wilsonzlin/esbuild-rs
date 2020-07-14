@@ -41,11 +41,11 @@ pub fn esbuild<'i, 'o>(code: &'i [u8]) -> &'o [u8] {
 
     unsafe {
         #[cfg(not(feature = "use-dylib"))]
-        let result = MinifyJs(go_string, &mut out_len) as *mut u8;
+        let result = MinifyJs(go_string, &mut out_len);
 
         #[cfg(feature = "use-dylib")]
-        let result = DYLIB_CONT.MinifyJs(go_string, &mut out_len) as *mut u8;
+        let result = DYLIB_CONT.MinifyJs(go_string, &mut out_len);
 
-        core::slice::from_raw_parts(result, out_len as usize)
+        core::slice::from_raw_parts(result as *mut u8, out_len as usize)
     }
 }
