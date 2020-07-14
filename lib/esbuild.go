@@ -1,22 +1,49 @@
 package main
 
+// typedef void (*minify_js_callback) (
+//   void*,
+//   void*,
+//   unsigned long long
+// );
+//
+// static void call_callback(
+//   minify_js_callback f,
+//   void* cb_data,
+//   void* min_code,
+//   unsigned long long min_code_len
+// ) {
+//   f(cb_data, min_code, min_code_len);
+// }
 import "C"
 import (
 	"github.com/evanw/esbuild/pkg/api"
 	"unsafe"
 )
 
-//export MinifyJs
-func MinifyJs(code string, out_len *C.ulonglong) unsafe.Pointer {
+func KickoffMinifyJs(
+	code string,
+	cb C.minify_js_callback,
+	cbData unsafe.Pointer,
+) {
 	result := api.Transform(code, api.TransformOptions{
 		MinifyWhitespace:  true,
 		MinifyIdentifiers: true,
 		MinifySyntax:      true,
 	})
 
-	*out_len = C.ulonglong(len(result.JS))
+	resCode := result.JS
+	resLen := len(resCode)
 
-	return C.CBytes(result.JS)
+	C.call_callback(cb, cbData, C.CBytes(resCode), C.ulonglong(resLen))
+}
+
+//export MinifyJs
+func MinifyJs(
+	code string,
+	cb C.minify_js_callback,
+	cbData unsafe.Pointer,
+) {
+	go KickoffMinifyJs(code, cb, cbData)
 }
 
 func main() {}
