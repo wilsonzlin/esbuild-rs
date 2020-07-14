@@ -1,7 +1,0 @@
-{
-  "private": true,
-  "dependencies": {
-    "esbuild-native": "file:..",
-    "esbuild": "^0.6.0"
-  }
-}
