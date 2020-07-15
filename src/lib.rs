@@ -1,7 +1,5 @@
 use std::os::raw::{c_char, c_ulonglong, c_void};
 
-mod test;
-
 extern "C" {
     fn MinifyJs(code: GoString, out_len: *mut c_ulonglong) -> *const c_void;
 }
