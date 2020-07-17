@@ -3,7 +3,7 @@ name = "esbuild-rs"
 version = "0.0.5"
 authors = ["Wilson Lin <code@wilsonl.in>"]
 edition = "2018"
-include = ["/src/**/*", "/build.rs", "/Cargo.toml", "/lib/esbuild.go", "/lib/go.mod", "lib/vendor/**/*"]
+include = ["/src/**/*", "/build.rs", "/Cargo.toml", "/lib/go.mod", "lib/vendor/**/*"]
 description = "FFI wrapper around esbuild, an extremely fast JS minifier written in Go"
 license = "MIT"
 homepage = "https://github.com/wilsonzlin/esbuild-rs"
@@ -14,6 +14,8 @@ repository = "https://github.com/wilsonzlin/esbuild-rs.git"
 
 [features]
 default = []
-use-dll = []
+use-dll = ["memorymodule-rs"]
 
 [dependencies]
+libc = "0.2.72"
+memorymodule-rs = { version = "0.0.1", optional = true }

@@ -22,7 +22,7 @@ fn main() {
         })
         .arg("-o")
         .arg(format!("{}/{}", out_dir, out_name))
-        .arg("esbuild.go")
+        .arg("vendor/github.com/evanw/esbuild/pkg/ffiapi/ffiapi.go")
         .status()
         .expect("compile Go library");
 
