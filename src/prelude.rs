@@ -1,6 +1,6 @@
 use std::{ops, slice};
 use std::os::raw::c_void;
-use crate::bridge::{FfiapiEngine, GoString, FfiapiDefine};
+use crate::bridge::{FfiapiEngine, GoString, FfiapiDefine, FfiapiMessage};
 
 // We wrap C arrays allocated from Go and sent to us in CVec, such as `*ffiapi_message`.
 // This will own the memory, make it usable as a slice, and drop using the matching deallocator.
@@ -133,4 +133,10 @@ pub struct TransformOptions {
 
     pub source_file: String,
     pub loader: Loader,
+}
+
+pub struct TransformResult {
+    pub js: Vec<u8>,
+    pub errors: CVec<FfiapiMessage>,
+    pub warnings: CVec<FfiapiMessage>,
 }

@@ -25,9 +25,9 @@ fn main() {
     });
 
     let transform_wg = wg.clone();
-    transform(code, options, |min, errors, warnings| {
+    transform(code, options, |TransformResult { js, errors, warnings }| {
         println!("Transform complete with {} errors and {} warnings", errors.len(), warnings.len());
-        println!("{}", String::from_utf8(min).unwrap());
+        println!("{}", String::from_utf8(js).unwrap());
         drop(transform_wg);
     });
 

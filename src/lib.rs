@@ -37,7 +37,7 @@ extern "C" fn transform_callback(
         let mut code = Vec::from_raw_parts(cb_data.src_code_ptr, cb_data.src_code_len, cb_data.src_code_cap);
         code.truncate(out_len);
 
-        let rust_cb_trait_box: Box<Box<dyn FnOnce(Vec<u8>, CVec<FfiapiMessage>, CVec<FfiapiMessage>)>>
+        let rust_cb_trait_box: Box<Box<dyn FnOnce(TransformResult)>>
             = Box::from_raw(cb_data.cb_trait_ptr as *mut _);
 
         let errors = CVec {
@@ -49,12 +49,16 @@ extern "C" fn transform_callback(
             len: warnings_len,
         };
 
-        rust_cb_trait_box(code, errors, warnings);
+        rust_cb_trait_box(TransformResult {
+            js: code,
+            errors,
+            warnings,
+        });
     };
 }
 
 pub fn transform<F>(mut code: Vec<u8>, options: Arc<TransformOptions>, cb: F) -> ()
-    where F: FnOnce(Vec<u8>, CVec<FfiapiMessage>, CVec<FfiapiMessage>),
+    where F: FnOnce(TransformResult),
           F: Send + 'static,
 {
     // Prepare code.
@@ -77,7 +81,7 @@ pub fn transform<F>(mut code: Vec<u8>, options: Arc<TransformOptions>, cb: F) ->
     let opt_defines_len = opt.defines.vec.len();
 
     // Prepare callback.
-    let cb_box = Box::new(cb) as Box<dyn FnOnce(Vec<u8>, CVec<FfiapiMessage>, CVec<FfiapiMessage>)>;
+    let cb_box = Box::new(cb) as Box<dyn FnOnce(TransformResult)>;
     let cb_trait_box = Box::new(cb_box);
     let cb_trait_ptr = Box::into_raw(cb_trait_box);
 
