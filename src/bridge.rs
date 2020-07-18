@@ -1,6 +1,7 @@
 use std::os::raw::{c_char, c_void, c_int};
-use libc::{ptrdiff_t, size_t};
 use std::mem;
+use lazy_static::lazy_static;
+use libc::{ptrdiff_t, size_t};
 
 type GoInt = i64;
 
@@ -92,6 +93,7 @@ pub type TransformApiCallback = extern "C" fn(
     warnings_len: size_t,
 ) -> ();
 
+#[cfg(not(feature = "use-dll"))]
 extern "C" {
     pub fn GoTransform(
         alloc: Allocator,
@@ -123,3 +125,43 @@ extern "C" {
         loader: u8,
     ) -> ();
 }
+
+#[cfg(feature = "use-dll")]
+const DLL_BIN: &'static [u8] = include_bytes!(concat!(env!("OUT_DIR"), "/esbuild.dll"));
+
+#[cfg(feature = "use-dll")]
+lazy_static! {
+    pub static ref DLL: memorymodule_rs::MemoryModule<'static> = memorymodule_rs::MemoryModule::new(DLL_BIN);
+}
+
+#[cfg(feature = "use-dll")]
+// TODO Combine with extern "C" declaration for not(use-dll).
+pub type GoTransform = extern "C" fn(
+    alloc: Allocator,
+    cb: TransformApiCallback,
+    cb_data: *mut c_void,
+    out: *mut c_void,
+    code: GoString,
+
+    source_map: u8,
+    target: u8,
+    engines: *const FfiapiEngine,
+    engines_len: size_t,
+    strict_nullish_coalescing: bool,
+    strict_class_fields: bool,
+
+    minify_whitespace: bool,
+    minify_identifiers: bool,
+    minify_syntax: bool,
+
+    jsx_factory: GoString,
+    jsx_fragment: GoString,
+
+    defines: *const FfiapiDefine,
+    defines_len: size_t,
+    // Slice of GoStrings.
+    pure_functions: GoSlice,
+
+    source_file: GoString,
+    loader: u8,
+);

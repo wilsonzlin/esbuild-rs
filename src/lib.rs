@@ -10,9 +10,6 @@ pub use crate::prelude::*;
 mod bridge;
 mod prelude;
 
-#[cfg(feature = "use_dll")]
-const DLL_BIN: &'static [u8] = include_bytes!(concat!(env!("OUT_DIR"), "esbuild.dll"));
-
 struct TransformInvocationData {
     src_code_ptr: *mut u8,
     src_code_len: usize,
@@ -95,6 +92,9 @@ pub fn transform<F>(mut code: Vec<u8>, options: Arc<TransformOptions>, cb: F) ->
     }));
 
     unsafe {
+        #[cfg(feature = "use-dll")]
+        let GoTransform = mem::transmute::<_, GoTransform>(crate::bridge::DLL.get_function("GoTransform"));
+
         GoTransform(
             libc::malloc,
             transform_callback,

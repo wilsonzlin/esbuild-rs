@@ -6,4 +6,9 @@ edition = "2018"
 
 [dependencies]
 crossbeam = "0.7.3"
+
+[target.'cfg(not(windows))'.dependencies]
 esbuild-rs = { path = ".." }
+
+[target.'cfg(windows)'.dependencies]
+esbuild-rs = { path = "..", features = ['use-dll'] }

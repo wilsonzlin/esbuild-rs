@@ -14,8 +14,9 @@ repository = "https://github.com/wilsonzlin/esbuild-rs.git"
 
 [features]
 default = []
-use-dll = ["memorymodule-rs"]
+use-dll = ["lazy_static", "memorymodule-rs"]
 
 [dependencies]
+lazy_static = { version = "1.4.0", optional = true }
 libc = "0.2.72"
-memorymodule-rs = { version = "0.0.1", optional = true }
+memorymodule-rs = { version = "0.0.2", optional = true }
