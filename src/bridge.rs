@@ -1,6 +1,5 @@
 use std::os::raw::{c_char, c_void, c_int};
 use std::mem;
-use lazy_static::lazy_static;
 use libc::{ptrdiff_t, size_t};
 
 type GoInt = i64;
@@ -93,7 +92,7 @@ pub type TransformApiCallback = extern "C" fn(
     warnings_len: size_t,
 ) -> ();
 
-#[cfg(not(feature = "use-dll"))]
+#[cfg(not(target_env="msvc"))]
 extern "C" {
     pub fn GoTransform(
         alloc: Allocator,
@@ -126,15 +125,15 @@ extern "C" {
     ) -> ();
 }
 
-#[cfg(feature = "use-dll")]
+#[cfg(target_env="msvc")]
 const DLL_BIN: &'static [u8] = include_bytes!(concat!(env!("OUT_DIR"), "/esbuild.dll"));
 
-#[cfg(feature = "use-dll")]
-lazy_static! {
+#[cfg(target_env="msvc")]
+lazy_static::lazy_static! {
     pub static ref DLL: memorymodule_rs::MemoryModule<'static> = memorymodule_rs::MemoryModule::new(DLL_BIN);
 }
 
-#[cfg(feature = "use-dll")]
+#[cfg(target_env="msvc")]
 // TODO Combine with extern "C" declaration for not(use-dll).
 pub type GoTransform = extern "C" fn(
     alloc: Allocator,

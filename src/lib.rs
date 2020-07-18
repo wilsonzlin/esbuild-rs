@@ -92,7 +92,8 @@ pub fn transform<F>(mut code: Vec<u8>, options: Arc<TransformOptions>, cb: F) ->
     }));
 
     unsafe {
-        #[cfg(feature = "use-dll")]
+        #[cfg(target_env="msvc")]
+        #[allow(non_snake_case)]
         let GoTransform = mem::transmute::<_, GoTransform>(crate::bridge::DLL.get_function("GoTransform"));
 
         GoTransform(

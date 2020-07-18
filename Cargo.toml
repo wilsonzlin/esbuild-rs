@@ -12,11 +12,9 @@ keywords = ["js", "javascript", "minifier", "minify", "minification"]
 categories = ["compression", "command-line-utilities", "development-tools::build-utils", "web-programming"]
 repository = "https://github.com/wilsonzlin/esbuild-rs.git"
 
-[features]
-default = []
-use-dll = ["lazy_static", "memorymodule-rs"]
-
 [dependencies]
-lazy_static = { version = "1.4.0", optional = true }
 libc = "0.2.72"
-memorymodule-rs = { version = "0.0.2", optional = true }
+
+[target.'cfg(target_env="msvc")'.dependencies]
+lazy_static = { version = "1.4.0" }
+memorymodule-rs = { version = "0.0.2" }

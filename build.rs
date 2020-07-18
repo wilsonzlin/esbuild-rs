@@ -2,7 +2,7 @@ use std::env;
 use std::process::Command;
 
 fn main() {
-    let use_dll = cfg!(feature = "use-dll");
+    let use_dll = cfg!(target_env="msvc");
     let out_dir = env::var("OUT_DIR").unwrap();
     let out_name = if use_dll {
         "esbuild.dll"
