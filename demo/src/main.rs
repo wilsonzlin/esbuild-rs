@@ -1,8 +1,10 @@
 use std::sync::Arc;
+use crossbeam::sync::WaitGroup;
 use esbuild_rs::*;
 
 fn main() {
     let code = b"let ax = 1".to_vec();
+    let wg = WaitGroup::new();
     let options = Arc::new(TransformOptions {
         source_map: SourceMap::None,
         target: Target::ESNext,
@@ -21,7 +23,13 @@ fn main() {
         source_file: "".to_string(),
         loader: Loader::JS,
     });
+
+    let transform_wg = wg.clone();
     transform(code, options, |min, errors, warnings| {
+        println!("Transform complete with {} errors and {} warnings", errors.len(), warnings.len());
         println!("{}", String::from_utf8(min).unwrap());
+        drop(transform_wg);
     });
+
+    wg.wait();
 }
