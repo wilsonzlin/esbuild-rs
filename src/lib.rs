@@ -1,9 +1,11 @@
-use std::os::raw::{c_char, c_void};
-use libc::{ptrdiff_t, size_t};
-pub use crate::prelude::*;
-use crate::bridge::{GoTransform, FfiapiMessage, GoString, GoSlice};
 use std::mem;
+use std::os::raw::{c_char, c_void};
 use std::sync::Arc;
+
+use libc::{ptrdiff_t, size_t};
+
+use crate::bridge::{FfiapiMessage, GoSlice, GoString, GoTransform};
+pub use crate::prelude::*;
 
 mod bridge;
 mod prelude;
@@ -38,7 +40,7 @@ extern "C" fn transform_callback(
         let mut code = Vec::from_raw_parts(cb_data.src_code_ptr, cb_data.src_code_len, cb_data.src_code_cap);
         code.truncate(out_len);
 
-        let mut rust_callback: Box<Box<dyn FnMut(Vec<u8>, CVec<FfiapiMessage>, CVec<FfiapiMessage>) -> ()>>
+        let rust_cb_trait_box: Box<Box<dyn FnOnce(Vec<u8>, CVec<FfiapiMessage>, CVec<FfiapiMessage>)>>
             = Box::from_raw(cb_data.cb_trait_ptr as *mut _);
 
         let errors = CVec {
@@ -50,13 +52,13 @@ extern "C" fn transform_callback(
             len: warnings_len,
         };
 
-        rust_callback(code, errors, warnings);
+        rust_cb_trait_box(code, errors, warnings);
     };
 }
 
 pub fn transform<F>(mut code: Vec<u8>, options: Arc<TransformOptions>, cb: F) -> ()
-    where F: FnMut(Vec<u8>, CVec<FfiapiMessage>, CVec<FfiapiMessage>) -> (),
-          F: 'static
+    where F: FnOnce(Vec<u8>, CVec<FfiapiMessage>, CVec<FfiapiMessage>),
+          F: Send + 'static,
 {
     // Prepare code.
     let src_code_ptr = code.as_mut_ptr();
@@ -78,18 +80,18 @@ pub fn transform<F>(mut code: Vec<u8>, options: Arc<TransformOptions>, cb: F) ->
     let opt_defines_len = opt.defines.vec.len();
 
     // Prepare callback.
-    let cb_trait = Box::new(cb);
-    let cb_trait_box = Box::new(cb_trait);
-    let cb_trait_ptr = Box::into_raw(cb_trait_box) as *mut c_void;
+    let cb_box = Box::new(cb) as Box<dyn FnOnce(Vec<u8>, CVec<FfiapiMessage>, CVec<FfiapiMessage>)>;
+    let cb_trait_box = Box::new(cb_box);
+    let cb_trait_ptr = Box::into_raw(cb_trait_box);
 
     let data = Box::into_raw(Box::new(TransformInvocationData {
         src_code_ptr,
         src_code_len,
         src_code_cap,
 
-        opt_ptr: Arc::into_raw(options),
+        opt_ptr: Arc::into_raw(options.clone()),
 
-        cb_trait_ptr,
+        cb_trait_ptr: cb_trait_ptr as *mut c_void,
     }));
 
     unsafe {

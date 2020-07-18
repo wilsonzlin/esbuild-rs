@@ -99,21 +99,26 @@ extern "C" {
         cb_data: *mut c_void,
         out: *mut c_void,
         code: GoString,
+
         source_map: u8,
         target: u8,
         engines: *const FfiapiEngine,
         engines_len: size_t,
         strict_nullish_coalescing: bool,
         strict_class_fields: bool,
+
         minify_whitespace: bool,
         minify_identifiers: bool,
         minify_syntax: bool,
+
         jsx_factory: GoString,
         jsx_fragment: GoString,
+
         defines: *const FfiapiDefine,
         defines_len: size_t,
         // Slice of GoStrings.
         pure_functions: GoSlice,
+
         source_file: GoString,
         loader: u8,
     ) -> ();
