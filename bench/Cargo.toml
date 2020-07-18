@@ -1,0 +1,8 @@
+[package]
+publish = false
+name = "esbuild-rs-bench"
+version = "0.0.1"
+
+[dependencies]
+swc = { git = "https://github.com/swc-project/swc.git", branch = "master" }
+esbuild-rs = { path = ".." }
