@@ -40,11 +40,11 @@ extern "C" fn transform_callback(
         let rust_cb_trait_box: Box<Box<dyn FnOnce(TransformResult)>>
             = Box::from_raw(cb_data.cb_trait_ptr as *mut _);
 
-        let errors = CVec {
+        let errors = SliceContainer {
             ptr: raw_errors,
             len: errors_len,
         };
-        let warnings = CVec {
+        let warnings = SliceContainer {
             ptr: raw_warnings,
             len: warnings_len,
         };
@@ -72,7 +72,6 @@ pub fn transform<F>(mut code: Vec<u8>, options: Arc<TransformOptions>, cb: F) ->
     mem::forget(code);
 
     // Prepare options.
-    // By converting to pointer, we consume it and therefore increase the refcount.
     let opt = options.clone();
     // We can safely convert anything in TransformOptions into raw pointers, as the memory is managed the the Arc and we only used owned values.
     let opt_engines_ptr = opt.engines.vec.as_ptr();
