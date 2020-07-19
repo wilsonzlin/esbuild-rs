@@ -1,7 +1,7 @@
 use std::os::raw::{c_char, c_void};
 use std::mem;
 use libc::{ptrdiff_t, size_t};
-use crate::Message;
+use crate::wrapper::{Message, OutputFile};
 
 type GoInt = isize;
 
@@ -56,18 +56,34 @@ impl GoSlice {
 }
 
 #[repr(C)]
+pub struct FfiapiDefine {
+    pub from: GoString,
+    pub to: GoString,
+}
+
+#[repr(C)]
 pub struct FfiapiEngine {
     pub name: u8,
     pub version: GoString,
 }
 
 #[repr(C)]
-pub struct FfiapiDefine {
-    pub from: GoString,
-    pub to: GoString,
+pub struct FfiapiLoader {
+    pub name: GoString,
+    pub loader: u8,
 }
 
 pub type Allocator = unsafe extern "C" fn(n: size_t) -> *mut c_void;
+
+pub type BuildApiCallback = extern "C" fn(
+    cb_data: *mut c_void,
+    output_files: *mut OutputFile,
+    output_files_len: size_t,
+    errors: *mut Message,
+    errors_len: size_t,
+    warnings: *mut Message,
+    warnings_len: size_t,
+) -> ();
 
 pub type TransformApiCallback = extern "C" fn(
     cb_data: *mut c_void,
@@ -113,6 +129,50 @@ macro_rules! declare_ffi_fn {
         );
     )
 }
+
+declare_ffi_fn!(GoBuild (
+    alloc: Allocator,
+    cb: BuildApiCallback,
+    cb_data: *mut c_void,
+
+    source_map: u8,
+    target: u8,
+    engines: *const FfiapiEngine,
+    engines_len: size_t,
+    strict_nullish_coalescing: bool,
+    strict_class_fields: bool,
+
+    minify_whitespace: bool,
+    minify_identifiers: bool,
+    minify_syntax: bool,
+
+    jsx_factory: GoString,
+    jsx_fragment: GoString,
+
+    defines: *const FfiapiDefine,
+    defines_len: size_t,
+    // Slice of GoStrings.
+    pure_functions: GoSlice,
+
+	global_name: GoString,
+	bundle: bool,
+	splitting: bool,
+	outfile: GoString,
+	metafile: GoString,
+	outdir: GoString,
+	platform: u8,
+	format: u8,
+    // Slice of GoStrings.
+	externals: GoSlice,
+	loaders: *const FfiapiLoader,
+	loaders_len: size_t,
+    // Slice of GoStrings.
+	resolve_extensions: GoSlice,
+	tsconfig: GoString,
+
+    // Slice of GoStrings.
+	entry_points: GoSlice,
+));
 
 declare_ffi_fn!(GoTransform (
     alloc: Allocator,

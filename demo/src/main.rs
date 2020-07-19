@@ -19,7 +19,7 @@ fn main() {
         jsx_factory: "".to_string(),
         jsx_fragment: "".to_string(),
         defines: Defines::new(),
-        pure_functions: Vec::new(),
+        pure_functions: PureFunctions::new(),
         source_file: "".to_string(),
         loader: Loader::JS,
     });
