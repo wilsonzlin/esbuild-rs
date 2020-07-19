@@ -3,7 +3,7 @@ use std::os::raw::{c_char, c_void};
 
 use libc::{ptrdiff_t, size_t};
 
-use crate::wrapper::{Message, OutputFile};
+use crate::wrapper::{Message, OutputFile, StrContainer};
 
 type GoInt = isize;
 
@@ -89,7 +89,8 @@ pub type BuildApiCallback = extern "C" fn(
 
 pub type TransformApiCallback = extern "C" fn(
     cb_data: *mut c_void,
-    out_len: size_t,
+    js: StrContainer,
+    js_source_map: StrContainer,
     errors: *mut Message,
     errors_len: size_t,
     warnings: *mut Message,
@@ -180,7 +181,6 @@ declare_ffi_fn!(GoTransform (
     alloc: Allocator,
     cb: TransformApiCallback,
     cb_data: *mut c_void,
-    out: *mut c_void,
     code: GoString,
 
     source_map: u8,

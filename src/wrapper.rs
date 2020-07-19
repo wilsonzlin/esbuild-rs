@@ -325,7 +325,8 @@ pub struct TransformOptions {
 }
 
 pub struct TransformResult {
-    pub js: Vec<u8>,
+    pub js: StrContainer,
+    pub js_source_map: StrContainer,
     pub errors: SliceContainer<Message>,
     pub warnings: SliceContainer<Message>,
 }

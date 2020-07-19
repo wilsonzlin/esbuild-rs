@@ -55,8 +55,29 @@ fn run_build() {
 }
 
 fn run_transform() {
-    let code = b"let ax = 1".to_vec();
+    let code = Arc::new(br#"
+        let ax = 1;
+
+        const x = NAME;
+
+        alert();
+        // Intentionally without semicolon.
+        important()
+        console.log();
+
+        React.render(
+            <div></div>
+        );
+    "#.to_vec());
     let wg = WaitGroup::new();
+
+    let mut defines = Defines::new();
+    defines.add("NAME".to_string(), "'myname'".to_string());
+
+    let mut pure_functions = PureFunctions::new();
+    pure_functions.add("alert".to_string());
+    pure_functions.add("console.log".to_string());
+
     let options = Arc::new(TransformOptions {
         source_map: SourceMap::None,
         target: Target::ESNext,
@@ -68,16 +89,16 @@ fn run_transform() {
         minify_whitespace: true,
         minify_identifiers: true,
         minify_syntax: true,
-        jsx_factory: "".to_string(),
+        jsx_factory: "React.createComponent".to_string(),
         jsx_fragment: "".to_string(),
-        defines: Defines::new(),
-        pure_functions: PureFunctions::new(),
-        source_file: "".to_string(),
-        loader: Loader::JS,
+        defines,
+        pure_functions,
+        source_file: "Rust literal raw string".to_string(),
+        loader: Loader::JSX,
     });
 
     let transform_wg = wg.clone();
-    transform(code, options, |TransformResult { js, errors, warnings }| {
+    transform(code, options, |TransformResult { js, js_source_map, errors, warnings }| {
         println!("Transform complete");
         println!("Errors:");
         for msg in &*errors {
@@ -87,7 +108,10 @@ fn run_transform() {
         for msg in &*warnings {
             println!("{}", msg);
         };
-        println!("{}", String::from_utf8(js).unwrap());
+        println!("Result:");
+        println!("{}", &*js);
+        println!("Source map:");
+        println!("{}", &*js_source_map);
         drop(transform_wg);
     });
 
