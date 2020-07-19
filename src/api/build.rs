@@ -63,7 +63,7 @@ pub fn build<F>(options: Arc<BuildOptions>, cb: F) -> ()
     }));
 
     unsafe {
-        #[cfg(target_env="msvc")]
+        #[cfg(target_env = "msvc")]
         #[allow(non_snake_case)]
         let GoBuild = std::mem::transmute::<_, GoBuild>(crate::bridge::DLL.get_function("GoBuild"));
 

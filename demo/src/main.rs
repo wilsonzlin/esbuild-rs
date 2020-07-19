@@ -47,7 +47,9 @@ fn run_build() {
         for msg in &*warnings {
             println!("{}", msg);
         };
-        println!("{} output files", output_files.len());
+        for file in &*output_files {
+            println!("Output file {}: {}", &*file.path, &*file.data);
+        };
         drop(build_wg);
     });
 
