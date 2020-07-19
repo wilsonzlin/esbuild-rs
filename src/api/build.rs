@@ -71,7 +71,7 @@ pub fn build<F>(options: Arc<BuildOptions>, cb: F) -> ()
     unsafe {
         #[cfg(target_env="msvc")]
         #[allow(non_snake_case)]
-        let GoBuild = mem::transmute::<_, GoBuild>(crate::bridge::DLL.get_function("GoBuild"));
+        let GoBuild = std::mem::transmute::<_, GoBuild>(crate::bridge::DLL.get_function("GoBuild"));
 
         GoBuild(
             libc::malloc,
