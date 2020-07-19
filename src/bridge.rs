@@ -27,7 +27,14 @@ impl GoString {
 
     // WARNING: The string must live for the lifetime of GoString.
     pub unsafe fn from_str_unmanaged(str: &str) -> GoString {
-        let ptr = str.as_ptr();
+        // Rust provides Unique::empty() as the pointer for empty allocations, which equals 0x1.
+        // This causes bad pointer panics in Go and even the occasional BSOD on Windows.
+        // See more at https://github.com/rust-lang/rust/issues/39625.
+        let ptr = if str.is_empty() {
+            std::ptr::null()
+        } else {
+            str.as_ptr()
+        };
         let len = str.len();
         GoString {
             p: ptr as *const c_char,
@@ -46,7 +53,14 @@ pub struct GoSlice {
 impl GoSlice {
     // WARNING: The string must live for the lifetime of GoSlice.
     pub unsafe fn from_vec_unamanged<T>(vec: &Vec<T>) -> GoSlice {
-        let ptr = vec.as_ptr();
+        // Rust provides Unique::empty() as the pointer for empty allocations, which equals 0x1.
+        // This causes bad pointer panics in Go and even the occasional BSOD on Windows.
+        // See more at https://github.com/rust-lang/rust/issues/39625.
+        let ptr = if vec.is_empty() {
+            std::ptr::null()
+        } else {
+            vec.as_ptr()
+        };
         let len = vec.len();
         let cap = vec.capacity();
         GoSlice {
