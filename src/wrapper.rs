@@ -1,4 +1,5 @@
-use std::{ops, slice, str};
+use std::{fmt, ops, slice, str};
+use std::fmt::{Display, Formatter};
 use std::os::raw::{c_char, c_void};
 
 use libc::{ptrdiff_t, size_t};
@@ -68,6 +69,12 @@ pub struct Message {
     pub text: StrContainer,
 }
 
+impl Display for Message {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{} [{}:{}:{}]", &*self.text, &*self.file, self.line, self.column)
+    }
+}
+
 // This is the ffiapi_output_file struct in C; we declare it here to avoid having to needlessly rewrap in OutputFile.
 #[repr(C)]
 pub struct OutputFile {
@@ -87,10 +94,10 @@ pub enum EngineName {
 
 #[derive(Copy, Clone)]
 pub enum Format {
-    FormatDefault,
-    FormatIIFE,
-    FormatCommonJS,
-    FormatESModule,
+    Default,
+    IIFE,
+    CommonJS,
+    ESModule,
 }
 
 #[derive(Copy, Clone)]
@@ -109,8 +116,8 @@ pub enum Loader {
 
 #[derive(Copy, Clone)]
 pub enum Platform {
-    PlatformBrowser,
-    PlatformNode,
+    Browser,
+    Node,
 }
 
 #[derive(Copy, Clone)]
