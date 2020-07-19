@@ -61,13 +61,6 @@ pub fn transform<F>(code: Arc<Vec<u8>>, options: Arc<TransformOptions>, cb: F) -
         n: code.len() as ptrdiff_t,
     };
 
-    // Prepare options.
-    // We can safely convert anything in TransformOptions into raw pointers, as the memory is managed the the Arc and we only used owned values.
-    let opt_engines_ptr = options.engines.vec.as_ptr();
-    let opt_engines_len = options.engines.vec.len();
-    let opt_defines_ptr = options.defines.vec.as_ptr();
-    let opt_defines_len = options.defines.vec.len();
-
     // Prepare callback.
     let cb_box = Box::new(cb) as Box<dyn FnOnce(TransformResult)>;
     let cb_trait_box = Box::new(cb_box);
@@ -84,6 +77,7 @@ pub fn transform<F>(code: Arc<Vec<u8>>, options: Arc<TransformOptions>, cb: F) -
         #[allow(non_snake_case)]
         let GoTransform = std::mem::transmute::<_, GoTransform>(crate::bridge::DLL.get_function("GoTransform"));
 
+        // We can safely convert anything in TransformOptions into raw pointers, as the memory is managed the the Arc and we only used owned values.
         GoTransform(
             libc::malloc,
             transform_callback,
@@ -91,8 +85,8 @@ pub fn transform<F>(code: Arc<Vec<u8>>, options: Arc<TransformOptions>, cb: F) -
             go_code,
             options.source_map as u8,
             options.target as u8,
-            opt_engines_ptr,
-            opt_engines_len,
+            options.engines.vec.as_ptr(),
+            options.engines.vec.len(),
             options.strict.nullish_coalescing,
             options.strict.class_fields,
             options.minify_whitespace,
@@ -100,8 +94,8 @@ pub fn transform<F>(code: Arc<Vec<u8>>, options: Arc<TransformOptions>, cb: F) -
             options.minify_syntax,
             GoString::from_str_unmanaged(&options.jsx_factory),
             GoString::from_str_unmanaged(&options.jsx_fragment),
-            opt_defines_ptr,
-            opt_defines_len,
+            options.defines.vec.as_ptr(),
+            options.defines.vec.len(),
             GoSlice::from_vec_unamanged(&options.pure_functions.vec),
             GoString::from_str_unmanaged(&options.source_file),
             options.loader as u8,
