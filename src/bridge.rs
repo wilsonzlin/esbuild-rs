@@ -1,8 +1,9 @@
-use std::os::raw::{c_char, c_void, c_int};
+use std::os::raw::{c_char, c_void};
 use std::mem;
 use libc::{ptrdiff_t, size_t};
+use crate::Message;
 
-type GoInt = i64;
+type GoInt = isize;
 
 #[repr(C)]
 pub struct GoString {
@@ -41,7 +42,7 @@ pub struct GoSlice {
 }
 
 impl GoSlice {
-    // WARNING The string must live for the lifetime of GoSlice.
+    // WARNING: The string must live for the lifetime of GoSlice.
     pub unsafe fn from_vec_unamanged<T>(vec: &Vec<T>) -> GoSlice {
         let ptr = vec.as_ptr();
         let len = vec.len();
@@ -52,21 +53,6 @@ impl GoSlice {
             cap: cap as GoInt,
         }
     }
-}
-
-#[repr(C)]
-pub struct FfiapiString {
-    len: size_t,
-    data: *mut c_char,
-}
-
-#[repr(C)]
-pub struct FfiapiMessage {
-    file: FfiapiString,
-    line: c_int,
-    column: c_int,
-    length: c_int,
-    text: FfiapiString,
 }
 
 #[repr(C)]
@@ -86,9 +72,9 @@ pub type Allocator = unsafe extern "C" fn(n: size_t) -> *mut c_void;
 pub type TransformApiCallback = extern "C" fn(
     cb_data: *mut c_void,
     out_len: size_t,
-    errors: *mut FfiapiMessage,
+    errors: *mut Message,
     errors_len: size_t,
-    warnings: *mut FfiapiMessage,
+    warnings: *mut Message,
     warnings_len: size_t,
 ) -> ();
 

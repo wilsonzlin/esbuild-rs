@@ -1,6 +1,7 @@
-use std::{ops, slice};
-use std::os::raw::c_void;
-use crate::bridge::{FfiapiEngine, GoString, FfiapiDefine, FfiapiMessage};
+use std::{ops, slice, str};
+use std::os::raw::{c_void, c_char};
+use libc::{ptrdiff_t, size_t};
+use crate::bridge::{FfiapiEngine, GoString, FfiapiDefine};
 
 // We wrap C arrays allocated from Go and sent to us in SliceContainer, such as `*ffiapi_message`.
 // This will own the memory, make it usable as a slice, and drop using the matching deallocator.
@@ -28,11 +29,12 @@ impl<T> Drop for SliceContainer<T> {
     }
 }
 
-// We wrap C char arrays allocated from Go and sent to us in StrContainer, such as `ffiapi_string`.
+// This is the ffiapi_string struct in C; we declare it here to avoid having to needlessly rewrap in StrContainer.
 // This will own the memory, make it usable as a str, and drop using the matching deallocator.
+#[repr(C)]
 pub struct StrContainer {
-    pub(crate) ptr: *mut u8,
-    pub(crate) len: usize,
+    len: size_t,
+    data: *mut c_char,
 }
 
 impl ops::Deref for StrContainer {
@@ -40,7 +42,7 @@ impl ops::Deref for StrContainer {
 
     fn deref(&self) -> &Self::Target {
         unsafe {
-            str::from_utf8_unchecked(slice::from_raw_parts(self.ptr, self.len))
+            str::from_utf8_unchecked(slice::from_raw_parts(self.data as *mut u8, self.len))
         }
     }
 }
@@ -49,9 +51,19 @@ impl Drop for StrContainer {
     fn drop(&mut self) {
         unsafe {
             // We pass `malloc` to Go as the allocator.
-            libc::free(self.ptr as *mut c_void);
+            libc::free(self.data as *mut c_void);
         };
     }
+}
+
+// This is the ffiapi_message struct in C; we declare it here to avoid having to needlessly rewrap in Message.
+#[repr(C)]
+pub struct Message {
+    pub file: StrContainer,
+    pub line: ptrdiff_t,
+    pub column: ptrdiff_t,
+    pub length: ptrdiff_t,
+    pub text: StrContainer,
 }
 
 #[derive(Copy, Clone)]
@@ -163,6 +175,6 @@ pub struct TransformOptions {
 
 pub struct TransformResult {
     pub js: Vec<u8>,
-    pub errors: SliceContainer<FfiapiMessage>,
-    pub warnings: SliceContainer<FfiapiMessage>,
+    pub errors: SliceContainer<Message>,
+    pub warnings: SliceContainer<Message>,
 }

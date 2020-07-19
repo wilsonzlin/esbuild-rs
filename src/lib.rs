@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use libc::{ptrdiff_t, size_t};
 
-use crate::bridge::{FfiapiMessage, GoSlice, GoString, GoTransform};
+use crate::bridge::{GoSlice, GoString, GoTransform};
 pub use crate::prelude::*;
 
 mod bridge;
@@ -23,9 +23,9 @@ struct TransformInvocationData {
 extern "C" fn transform_callback(
     raw_cb_data: *mut c_void,
     out_len: size_t,
-    raw_errors: *mut FfiapiMessage,
+    raw_errors: *mut Message,
     errors_len: size_t,
-    raw_warnings: *mut FfiapiMessage,
+    raw_warnings: *mut Message,
     warnings_len: size_t,
 ) -> () {
     unsafe {
