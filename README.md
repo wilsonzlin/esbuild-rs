@@ -12,7 +12,7 @@ Check the [docs](https://docs.rs/esbuild-rs/) for the API.
 
 A fork of [esbuild](https://github.com/wilsonzlin/esbuild-lib) is used to allow taking advantage of the Go scheduler for optimal concurrency.
 
-The APIs in this library simply take a callback, which is called asynchronously from a Goroutine once the process finishes. This means that some Rust concurrency handling is needed on top. Some useful tools are [WaitGroup](https://docs.rs/crossbeam/0.7.3/crossbeam/sync/struct.WaitGroup.html) for waiting for all callbacks to be called before continuing, [channels](https://docs.rs/crossbeam/0.7.3/crossbeam/channel/index.html) for passing results from a callback thread to the main thread, and [deque](https://docs.rs/crossbeam/0.7.3/crossbeam/deque/index.html) for queueing completed results and processing them in parallel. All of these are available from the [crossbeam](https://crates.io/crates/crossbeam) crate.
+The APIs in this library simply take a callback, which is called asynchronously from a Goroutine once the process finishes. This means that some Rust concurrency handling is needed on top. Some useful tools are [WaitGroup](https://docs.rs/crossbeam/0.7.3/crossbeam/sync/struct.WaitGroup.html) for waiting for all callbacks to be called before continuing, [channel](https://docs.rs/crossbeam/0.7.3/crossbeam/channel/index.html) for passing results from a callback thread to the main thread, and [deque](https://docs.rs/crossbeam/0.7.3/crossbeam/deque/index.html) for queueing completed results and processing them in parallel. All of these are available from the [crossbeam](https://crates.io/crates/crossbeam) crate.
 
 ## Windows
 
