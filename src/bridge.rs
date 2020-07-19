@@ -38,7 +38,7 @@ impl GoString {
 
 #[repr(C)]
 pub struct GoSlice {
-    data: *const c_void,
+    data: *mut c_void,
     len: GoInt,
     cap: GoInt,
 }
@@ -50,7 +50,7 @@ impl GoSlice {
         let len = vec.len();
         let cap = vec.capacity();
         GoSlice {
-            data: ptr as *const c_void,
+            data: ptr as *mut c_void,
             len: len as GoInt,
             cap: cap as GoInt,
         }
