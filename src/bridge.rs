@@ -78,39 +78,6 @@ pub type TransformApiCallback = extern "C" fn(
     warnings_len: size_t,
 ) -> ();
 
-#[cfg(not(target_env="msvc"))]
-extern "C" {
-    pub fn GoTransform(
-        alloc: Allocator,
-        cb: TransformApiCallback,
-        cb_data: *mut c_void,
-        out: *mut c_void,
-        code: GoString,
-
-        source_map: u8,
-        target: u8,
-        engines: *const FfiapiEngine,
-        engines_len: size_t,
-        strict_nullish_coalescing: bool,
-        strict_class_fields: bool,
-
-        minify_whitespace: bool,
-        minify_identifiers: bool,
-        minify_syntax: bool,
-
-        jsx_factory: GoString,
-        jsx_fragment: GoString,
-
-        defines: *const FfiapiDefine,
-        defines_len: size_t,
-        // Slice of GoStrings.
-        pure_functions: GoSlice,
-
-        source_file: GoString,
-        loader: u8,
-    ) -> ();
-}
-
 #[cfg(target_env="msvc")]
 const DLL_BIN: &'static [u8] = include_bytes!(concat!(env!("OUT_DIR"), "/esbuild.dll"));
 
@@ -119,9 +86,35 @@ lazy_static::lazy_static! {
     pub static ref DLL: memorymodule_rs::MemoryModule<'static> = memorymodule_rs::MemoryModule::new(DLL_BIN);
 }
 
+#[cfg(not(target_env="msvc"))]
+macro_rules! declare_ffi_fn {
+    ($name:ident (
+        $(
+            $argn:ident: $argt:ty,
+        )*
+    )) => (
+        extern "C" {
+            pub fn $name (
+                $($argn: $argt,)*
+            );
+        }
+    )
+}
+
 #[cfg(target_env="msvc")]
-// TODO Combine with extern "C" declaration for not(use-dll).
-pub type GoTransform = extern "C" fn(
+macro_rules! declare_ffi_fn {
+    ($name:ident (
+        $(
+            $argn:ident: $argt:ty,
+        )*
+    )) => (
+        pub type $name = extern "C" fn (
+            $($argn: $argt,)*
+        );
+    )
+}
+
+declare_ffi_fn!(GoTransform (
     alloc: Allocator,
     cb: TransformApiCallback,
     cb_data: *mut c_void,
@@ -149,4 +142,4 @@ pub type GoTransform = extern "C" fn(
 
     source_file: GoString,
     loader: u8,
-);
+));

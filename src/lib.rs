@@ -107,20 +107,25 @@ pub fn transform<F>(mut code: Vec<u8>, options: Arc<TransformOptions>, cb: F) ->
             // we direct Go to write the output directly into the source Vec.
             src_code_ptr as *mut c_void,
             go_code,
+
             opt.source_map as u8,
             opt.target as u8,
             opt_engines_ptr,
             opt_engines_len,
             opt.strict.nullish_coalescing,
             opt.strict.class_fields,
+
             opt.minify_whitespace,
             opt.minify_identifiers,
             opt.minify_syntax,
+
             GoString::from_str_unmanaged(&opt.jsx_factory),
             GoString::from_str_unmanaged(&opt.jsx_fragment),
+
             opt_defines_ptr,
             opt_defines_len,
             GoSlice::from_vec_unamanged(&opt.pure_functions),
+
             GoString::from_str_unmanaged(&opt.source_file),
             opt.loader as u8,
         );
