@@ -1,6 +1,8 @@
-use std::os::raw::{c_char, c_void};
 use std::mem;
+use std::os::raw::{c_char, c_void};
+
 use libc::{ptrdiff_t, size_t};
+
 use crate::wrapper::{Message, OutputFile};
 
 type GoInt = isize;
@@ -94,15 +96,15 @@ pub type TransformApiCallback = extern "C" fn(
     warnings_len: size_t,
 ) -> ();
 
-#[cfg(target_env="msvc")]
+#[cfg(target_env = "msvc")]
 const DLL_BIN: &'static [u8] = include_bytes!(concat!(env!("OUT_DIR"), "/esbuild.dll"));
 
-#[cfg(target_env="msvc")]
+#[cfg(target_env = "msvc")]
 lazy_static::lazy_static! {
     pub static ref DLL: memorymodule_rs::MemoryModule<'static> = memorymodule_rs::MemoryModule::new(DLL_BIN);
 }
 
-#[cfg(not(target_env="msvc"))]
+#[cfg(not(target_env = "msvc"))]
 macro_rules! declare_ffi_fn {
     ($name:ident (
         $(
@@ -117,7 +119,7 @@ macro_rules! declare_ffi_fn {
     )
 }
 
-#[cfg(target_env="msvc")]
+#[cfg(target_env = "msvc")]
 macro_rules! declare_ffi_fn {
     ($name:ident (
         $(
@@ -154,24 +156,24 @@ declare_ffi_fn!(GoBuild (
     // Slice of GoStrings.
     pure_functions: GoSlice,
 
-	global_name: GoString,
-	bundle: bool,
-	splitting: bool,
-	outfile: GoString,
-	metafile: GoString,
-	outdir: GoString,
-	platform: u8,
-	format: u8,
+    global_name: GoString,
+    bundle: bool,
+    splitting: bool,
+    outfile: GoString,
+    metafile: GoString,
+    outdir: GoString,
+    platform: u8,
+    format: u8,
     // Slice of GoStrings.
-	externals: GoSlice,
-	loaders: *const FfiapiLoader,
-	loaders_len: size_t,
+    externals: GoSlice,
+    loaders: *const FfiapiLoader,
+    loaders_len: size_t,
     // Slice of GoStrings.
-	resolve_extensions: GoSlice,
-	tsconfig: GoString,
+    resolve_extensions: GoSlice,
+    tsconfig: GoString,
 
     // Slice of GoStrings.
-	entry_points: GoSlice,
+    entry_points: GoSlice,
 ));
 
 declare_ffi_fn!(GoTransform (
