@@ -18,4 +18,4 @@ The APIs in this library simply take a callback, which is called asynchronously 
 
 Since Cgo uses GCC, it's recommended to use the `gnu` toolchain and [TDM-GCC](https://jmeubank.github.io/tdm-gcc/).
 
-If the `msvc` toolchain is used, this library will instead compile a DLL, embed it into the resulting Rust binary, and load it at runtime in memory using [MemoryModule](https://github.com/wilsonzlin/memorymodule-rs). This happens transparently at build time and run time, and requires no extra effort.
+If the `msvc` toolchain is used, this library will instead compile a DLL, embed it into the resulting Rust binary, and load it at runtime from memory using [MemoryModule](https://github.com/wilsonzlin/memorymodule-rs). This happens transparently at build time and run time, and requires no extra effort.
