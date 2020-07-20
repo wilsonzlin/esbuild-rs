@@ -1,15 +1,16 @@
 use crossbeam::sync::WaitGroup;
 use esbuild_rs::*;
 use std::sync::Arc;
+use std::collections::HashMap;
 
 fn run_build() {
     let wg = WaitGroup::new();
-    let mut entry_points = EntryPoints::new();
-    entry_points.add("samplejs/input.js".to_string());
-    let options = Arc::new(BuildOptions {
+    let mut entry_points = Vec::<String>::new();
+    entry_points.push("samplejs/input.js".to_string());
+    let options_builder = BuildOptionsBuilder {
         source_map: SourceMap::None,
         target: Target::ESNext,
-        engines: Engines::new(),
+        engines: Vec::new(),
         strict: StrictOptions {
             nullish_coalescing: true,
             class_fields: true,
@@ -19,8 +20,8 @@ fn run_build() {
         minify_syntax: true,
         jsx_factory: "".to_string(),
         jsx_fragment: "".to_string(),
-        defines: Defines::new(),
-        pure_functions: PureFunctions::new(),
+        defines: HashMap::new(),
+        pure_functions: Vec::new(),
         global_name: "".to_string(),
         bundle: true,
         splitting: false,
@@ -29,12 +30,13 @@ fn run_build() {
         outdir: "".to_string(),
         platform: Platform::Browser,
         format: Format::IIFE,
-        externals: Externals::new(),
-        loaders: Loaders::new(),
-        resolve_extensions: ResolveExtensions::new(),
+        externals: Vec::new(),
+        loaders: HashMap::new(),
+        resolve_extensions: Vec::new(),
         tsconfig: "".to_string(),
         entry_points,
-    });
+    };
+    let options = options_builder.build();
 
     let build_wg = wg.clone();
     build(options, |BuildResult { output_files, errors, warnings }| {
@@ -73,17 +75,17 @@ fn run_transform() {
     "#.to_vec());
     let wg = WaitGroup::new();
 
-    let mut defines = Defines::new();
-    defines.add("NAME".to_string(), "'myname'".to_string());
+    let mut defines = HashMap::<String, String>::new();
+    defines.insert("NAME".to_string(), "'myname'".to_string());
 
-    let mut pure_functions = PureFunctions::new();
-    pure_functions.add("alert".to_string());
-    pure_functions.add("console.log".to_string());
+    let mut pure_functions = Vec::<String>::new();
+    pure_functions.push("alert".to_string());
+    pure_functions.push("console.log".to_string());
 
-    let options = Arc::new(TransformOptions {
+    let options_builder = TransformOptionsBuilder {
         source_map: SourceMap::None,
         target: Target::ESNext,
-        engines: Engines::new(),
+        engines: Vec::new(),
         strict: StrictOptions {
             nullish_coalescing: true,
             class_fields: true,
@@ -97,7 +99,8 @@ fn run_transform() {
         pure_functions,
         source_file: "Rust literal raw string".to_string(),
         loader: Loader::JSX,
-    });
+    };
+    let options = options_builder.build();
 
     let transform_wg = wg.clone();
     transform(code, options, |TransformResult { js, js_source_map, errors, warnings }| {

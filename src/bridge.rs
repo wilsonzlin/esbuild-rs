@@ -3,9 +3,23 @@ use std::os::raw::{c_char, c_void};
 
 use libc::{ptrdiff_t, size_t};
 
-use crate::wrapper::{Message, OutputFile, StrContainer};
+use crate::wrapper::{Engine, Loader, Message, OutputFile, StrContainer};
 
-type GoInt = isize;
+const DUMMY_SAFE_PTR: &[u8] = &[0u8; 1024];
+
+// Rust provides Unique::empty() as the pointer for empty allocations, which equals 0x1.
+// This causes bad pointer panics in Go and even the occasional BSOD on Windows.
+// See more at https://github.com/rust-lang/rust/issues/39625.
+// This applies to GoString and FfiapiGoStringGoSlice.
+pub fn get_allocation_pointer<T>(data: &[T]) -> *const T {
+    if data.is_empty() {
+        // We can't provide NULL as sometimes Go will panic on finding one, even with length 0.
+        // DUMMY_SAFE_PTR points to a static array of 1024 bytes, zeroed out and safe to read.
+        DUMMY_SAFE_PTR.as_ptr() as *const T
+    } else {
+        data.as_ptr()
+    }
+}
 
 #[repr(C)]
 pub struct GoString {
@@ -16,7 +30,7 @@ pub struct GoString {
 impl GoString {
     pub fn from_string(mut str: String) -> GoString {
         str.shrink_to_fit();
-        let ptr = str.as_ptr();
+        let ptr = get_allocation_pointer(str.as_bytes());
         let len = str.len();
         mem::forget(str);
         GoString {
@@ -26,15 +40,8 @@ impl GoString {
     }
 
     // WARNING: The string must live for the lifetime of GoString.
-    pub unsafe fn from_str_unmanaged(str: &str) -> GoString {
-        // Rust provides Unique::empty() as the pointer for empty allocations, which equals 0x1.
-        // This causes bad pointer panics in Go and even the occasional BSOD on Windows.
-        // See more at https://github.com/rust-lang/rust/issues/39625.
-        let ptr = if str.is_empty() {
-            std::ptr::null()
-        } else {
-            str.as_ptr()
-        };
+    pub unsafe fn from_bytes_unmanaged(str: &[u8]) -> GoString {
+        let ptr = get_allocation_pointer(str);
         let len = str.len();
         GoString {
             p: ptr as *const c_char,
@@ -44,37 +51,39 @@ impl GoString {
 }
 
 #[repr(C)]
-pub struct GoSlice {
+pub struct FfiapiGoStringGoSlice {
     data: *mut c_void,
-    len: GoInt,
-    cap: GoInt,
+    len: ptrdiff_t,
+    cap: ptrdiff_t,
 }
 
-impl GoSlice {
+impl FfiapiGoStringGoSlice {
     // WARNING: The string must live for the lifetime of GoSlice.
-    pub unsafe fn from_vec_unamanged<T>(vec: &Vec<T>) -> GoSlice {
-        // Rust provides Unique::empty() as the pointer for empty allocations, which equals 0x1.
-        // This causes bad pointer panics in Go and even the occasional BSOD on Windows.
-        // See more at https://github.com/rust-lang/rust/issues/39625.
-        let ptr = if vec.is_empty() {
-            std::ptr::null()
-        } else {
-            vec.as_ptr()
-        };
+    pub unsafe fn from_vec_unamanged<T>(vec: &Vec<T>) -> FfiapiGoStringGoSlice {
+        let ptr = get_allocation_pointer(vec);
         let len = vec.len();
         let cap = vec.capacity();
-        GoSlice {
+        FfiapiGoStringGoSlice {
             data: ptr as *mut c_void,
-            len: len as GoInt,
-            cap: cap as GoInt,
+            len: len as ptrdiff_t,
+            cap: cap as ptrdiff_t,
         }
     }
 }
 
 #[repr(C)]
 pub struct FfiapiDefine {
-    pub from: GoString,
-    pub to: GoString,
+    pub name: GoString,
+    pub value: GoString,
+}
+
+impl FfiapiDefine {
+    pub fn from_map_entry((name, value): (String, String)) -> FfiapiDefine {
+        FfiapiDefine {
+            name: GoString::from_string(name),
+            value: GoString::from_string(value),
+        }
+    }
 }
 
 #[repr(C)]
@@ -83,10 +92,28 @@ pub struct FfiapiEngine {
     pub version: GoString,
 }
 
+impl FfiapiEngine {
+    pub fn from_engine(engine: Engine) -> FfiapiEngine {
+        FfiapiEngine {
+            name: engine.name as u8,
+            version: GoString::from_string(engine.version),
+        }
+    }
+}
+
 #[repr(C)]
 pub struct FfiapiLoader {
     pub name: GoString,
     pub loader: u8,
+}
+
+impl FfiapiLoader {
+    pub fn from_map_entry((name, loader): (String, Loader)) -> FfiapiLoader {
+        FfiapiLoader {
+            name: GoString::from_string(name),
+            loader: loader as u8,
+        }
+    }
 }
 
 pub type Allocator = unsafe extern "C" fn(n: size_t) -> *mut c_void;
@@ -110,6 +137,72 @@ pub type TransformApiCallback = extern "C" fn(
     warnings: *mut Message,
     warnings_len: size_t,
 ) -> ();
+
+#[repr(C)]
+pub struct FfiapiBuildOptions {
+    pub source_map: u8,
+    pub target: u8,
+    pub engines: *const FfiapiEngine,
+    pub engines_len: size_t,
+    pub strict_nullish_coalescing: bool,
+    pub strict_class_fields: bool,
+
+    pub minify_whitespace: bool,
+    pub minify_identifiers: bool,
+    pub minify_syntax: bool,
+
+    pub jsx_factory: GoString,
+    pub jsx_fragment: GoString,
+
+    pub defines: *const FfiapiDefine,
+    pub defines_len: size_t,
+    // Slice of GoStrings.
+    pub pure_functions: FfiapiGoStringGoSlice,
+
+    pub global_name: GoString,
+    pub bundle: bool,
+    pub splitting: bool,
+    pub outfile: GoString,
+    pub metafile: GoString,
+    pub outdir: GoString,
+    pub platform: u8,
+    pub format: u8,
+    // Slice of GoStrings.
+    pub externals: FfiapiGoStringGoSlice,
+    pub loaders: *const FfiapiLoader,
+    pub loaders_len: size_t,
+    // Slice of GoStrings.
+    pub resolve_extensions: FfiapiGoStringGoSlice,
+    pub tsconfig: GoString,
+
+    // Slice of GoStrings.
+    pub entry_points: FfiapiGoStringGoSlice,
+}
+
+#[repr(C)]
+pub struct FfiapiTransformOptions {
+    pub source_map: u8,
+    pub target: u8,
+    pub engines: *const FfiapiEngine,
+    pub engines_len: size_t,
+    pub strict_nullish_coalescing: bool,
+    pub strict_class_fields: bool,
+
+    pub minify_whitespace: bool,
+    pub minify_identifiers: bool,
+    pub minify_syntax: bool,
+
+    pub jsx_factory: GoString,
+    pub jsx_fragment: GoString,
+
+    pub defines: *const FfiapiDefine,
+    pub defines_len: size_t,
+    // Slice of GoStrings.
+    pub pure_functions: FfiapiGoStringGoSlice,
+
+    pub source_file: GoString,
+    pub loader: u8,
+}
 
 #[cfg(target_env = "msvc")]
 const DLL_BIN: &'static [u8] = include_bytes!(concat!(env!("OUT_DIR"), "/esbuild.dll"));
@@ -151,44 +244,7 @@ declare_ffi_fn!(GoBuild (
     alloc: Allocator,
     cb: BuildApiCallback,
     cb_data: *mut c_void,
-
-    source_map: u8,
-    target: u8,
-    engines: *const FfiapiEngine,
-    engines_len: size_t,
-    strict_nullish_coalescing: bool,
-    strict_class_fields: bool,
-
-    minify_whitespace: bool,
-    minify_identifiers: bool,
-    minify_syntax: bool,
-
-    jsx_factory: GoString,
-    jsx_fragment: GoString,
-
-    defines: *const FfiapiDefine,
-    defines_len: size_t,
-    // Slice of GoStrings.
-    pure_functions: GoSlice,
-
-    global_name: GoString,
-    bundle: bool,
-    splitting: bool,
-    outfile: GoString,
-    metafile: GoString,
-    outdir: GoString,
-    platform: u8,
-    format: u8,
-    // Slice of GoStrings.
-    externals: GoSlice,
-    loaders: *const FfiapiLoader,
-    loaders_len: size_t,
-    // Slice of GoStrings.
-    resolve_extensions: GoSlice,
-    tsconfig: GoString,
-
-    // Slice of GoStrings.
-    entry_points: GoSlice,
+    opt: *const FfiapiBuildOptions,
 ));
 
 declare_ffi_fn!(GoTransform (
@@ -196,26 +252,5 @@ declare_ffi_fn!(GoTransform (
     cb: TransformApiCallback,
     cb_data: *mut c_void,
     code: GoString,
-
-    source_map: u8,
-    target: u8,
-    engines: *const FfiapiEngine,
-    engines_len: size_t,
-    strict_nullish_coalescing: bool,
-    strict_class_fields: bool,
-
-    minify_whitespace: bool,
-    minify_identifiers: bool,
-    minify_syntax: bool,
-
-    jsx_factory: GoString,
-    jsx_fragment: GoString,
-
-    defines: *const FfiapiDefine,
-    defines_len: size_t,
-    // Slice of GoStrings.
-    pure_functions: GoSlice,
-
-    source_file: GoString,
-    loader: u8,
+    opt: *const FfiapiTransformOptions,
 ));

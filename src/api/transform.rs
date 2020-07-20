@@ -1,9 +1,9 @@
-use std::os::raw::{c_char, c_void};
+use std::os::raw::c_void;
 use std::sync::Arc;
 
-use libc::{ptrdiff_t, size_t};
+use libc::size_t;
 
-use crate::bridge::{GoSlice, GoString, GoTransform};
+use crate::bridge::{GoString, GoTransform};
 use crate::wrapper::{Message, SliceContainer, StrContainer, TransformOptions, TransformResult};
 
 struct TransformInvocationData {
@@ -56,10 +56,7 @@ pub fn transform<F>(code: Arc<Vec<u8>>, options: Arc<TransformOptions>, cb: F) -
           F: Send + 'static,
 {
     // Prepare code.
-    let go_code = GoString {
-        p: code.as_ptr() as *const c_char,
-        n: code.len() as ptrdiff_t,
-    };
+    let go_code = unsafe { GoString::from_bytes_unmanaged(&code) };
 
     // Prepare callback.
     let cb_box = Box::new(cb) as Box<dyn FnOnce(TransformResult)>;
@@ -83,22 +80,7 @@ pub fn transform<F>(code: Arc<Vec<u8>>, options: Arc<TransformOptions>, cb: F) -
             transform_callback,
             data as *mut c_void,
             go_code,
-            options.source_map as u8,
-            options.target as u8,
-            options.engines.vec.as_ptr(),
-            options.engines.vec.len(),
-            options.strict.nullish_coalescing,
-            options.strict.class_fields,
-            options.minify_whitespace,
-            options.minify_identifiers,
-            options.minify_syntax,
-            GoString::from_str_unmanaged(&options.jsx_factory),
-            GoString::from_str_unmanaged(&options.jsx_fragment),
-            options.defines.vec.as_ptr(),
-            options.defines.vec.len(),
-            GoSlice::from_vec_unamanged(&options.pure_functions.vec),
-            GoString::from_str_unmanaged(&options.source_file),
-            options.loader as u8,
+            options.ffiapi_ptr,
         );
     }
 }

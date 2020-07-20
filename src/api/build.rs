@@ -1,7 +1,9 @@
 use std::os::raw::c_void;
 use std::sync::Arc;
+
 use libc::size_t;
-use crate::bridge::{GoBuild, GoSlice, GoString};
+
+use crate::bridge::GoBuild;
 use crate::wrapper::{BuildOptions, BuildResult, Message, OutputFile, SliceContainer};
 
 struct BuildInvocationData {
@@ -72,40 +74,7 @@ pub fn build<F>(options: Arc<BuildOptions>, cb: F) -> ()
             libc::malloc,
             build_callback,
             data as *mut c_void,
-
-            options.source_map as u8,
-            options.target as u8,
-            options.engines.vec.as_ptr(),
-            options.engines.vec.len(),
-            options.strict.nullish_coalescing,
-            options.strict.class_fields,
-
-            options.minify_whitespace,
-            options.minify_identifiers,
-            options.minify_syntax,
-
-            GoString::from_str_unmanaged(&options.jsx_factory),
-            GoString::from_str_unmanaged(&options.jsx_fragment),
-
-            options.defines.vec.as_ptr(),
-            options.defines.vec.len(),
-            GoSlice::from_vec_unamanged(&options.pure_functions.vec),
-
-            GoString::from_str_unmanaged(&options.global_name),
-            options.bundle,
-            options.splitting,
-            GoString::from_str_unmanaged(&options.outfile),
-            GoString::from_str_unmanaged(&options.metafile),
-            GoString::from_str_unmanaged(&options.outdir),
-            options.platform as u8,
-            options.format as u8,
-            GoSlice::from_vec_unamanged(&options.externals.vec),
-            options.loaders.vec.as_ptr(),
-            options.loaders.vec.len(),
-            GoSlice::from_vec_unamanged(&options.resolve_extensions.vec),
-            GoString::from_str_unmanaged(&options.tsconfig),
-
-            GoSlice::from_vec_unamanged(&options.entry_points.vec),
+            options.ffiapi_ptr,
         );
     }
 }
