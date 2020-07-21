@@ -51,6 +51,47 @@ extern "C" fn transform_callback(
     };
 }
 
+/// This function transforms a string of source code into JavaScript. It can be used to minify
+/// JavaScript, convert TypeScript/JSX to JavaScript, or convert newer JavaScript to older
+/// JavaScript. The available options roughly correspond to esbuild's command-line flags.
+///
+/// The equivalent Go function will be called via Cgo, which will run the API from a Goroutine. This
+/// means that this function will return immediately, and `cb` will be called sometime in the future
+/// once the Goroutine completes. Additional concurrency management may be necessary to keep the
+/// Rust program alive until all calls to this function actually complete.
+///
+/// # Arguments
+///
+/// * `code` - Source code to transform. Must be UTF-8. A reference will be held on the Arc until
+///   the callback is asynchronously called from Go.
+/// * `options` - Built TransformOptions created from a TransformOptionsBuilder. A reference will be
+///   held on the Arc until the callback is asynchronously called from Go.
+/// * `cb` - Closure to call once the Goroutine completes with the TransformResult.
+///
+/// # Examples
+///
+/// This example uses the [crossbeam](https://docs.rs/crossbeam/) crate to prevent Rust from exiting
+/// until the transform completes.
+///
+/// ```
+/// use std::sync::Arc;
+/// use crossbeam::sync::WaitGroup;
+/// use esbuild_rs::{TransformOptionsBuilder, transform, TransformResult};
+///
+/// fn main() {
+///   let wg = WaitGroup::new();
+///   let src = Arc::new(b"let x = NAME;".to_vec());
+///   let mut options_builder = TransformOptionsBuilder::new();
+///   options_builder.defines.insert("NAME".to_string(), "world".to_string());
+///   let options = options_builder.build();
+///   let task = wg.clone();
+///   transform(src, options, |TransformResult { js, js_source_map, errors, warnings }| {
+///     println!("Transform complete!");
+///     drop(task);
+///   });
+///   wg.wait();
+/// }
+/// ```
 pub fn transform<F>(code: Arc<Vec<u8>>, options: Arc<TransformOptions>, cb: F) -> ()
     where F: FnOnce(TransformResult),
           F: Send + 'static,

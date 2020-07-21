@@ -50,6 +50,43 @@ extern "C" fn build_callback(
     };
 }
 
+/// This function runs an end-to-end build operation. It takes an array of file paths as entry
+/// points, parses them and all of their dependencies, and returns the output files to write to the
+/// file system. The available options roughly correspond to esbuild's command-line flags.
+///
+/// The equivalent Go function will be called via Cgo, which will run the API from a Goroutine. This
+/// means that this function will return immediately, and `cb` will be called sometime in the future
+/// once the Goroutine completes. Additional concurrency management may be necessary to keep the
+/// Rust program alive until all calls to this function actually complete.
+///
+/// # Arguments
+///
+/// * `options` - Built BuildOptions created from a BuildOptionsBuilder. A reference will be held on
+///   the Arc until the callback is asynchronously called from Go.
+/// * `cb` - Closure to call once the Goroutine completes with the BuildResult.
+///
+/// # Examples
+///
+/// This example uses the [crossbeam](https://docs.rs/crossbeam/) crate to prevent Rust from exiting
+/// until the build completes.
+///
+/// ```
+/// use crossbeam::sync::WaitGroup;
+/// use esbuild_rs::{BuildOptionsBuilder, build, BuildResult};
+///
+/// fn main() {
+///   let wg = WaitGroup::new();
+///   let mut options_builder = BuildOptionsBuilder::new();
+///   options_builder.entry_points.push("index.js".to_string());
+///   let options = options_builder.build();
+///   let task = wg.clone();
+///   build(options, |BuildResult { output_files, errors, warnings }| {
+///     println!("Build complete!");
+///     drop(task);
+///   });
+///   wg.wait();
+/// }
+/// ```
 pub fn build<F>(options: Arc<BuildOptions>, cb: F) -> ()
     where F: FnOnce(BuildResult),
           F: Send + 'static,
