@@ -20,6 +20,10 @@ pub struct SliceContainer<T> {
     pub(crate) len: usize,
 }
 
+unsafe impl<T> Send for SliceContainer<T> {}
+
+unsafe impl<T> Sync for SliceContainer<T> {}
+
 impl<T> ops::Deref for SliceContainer<T> {
     type Target = [T];
 
@@ -46,6 +50,10 @@ pub struct StrContainer {
     len: size_t,
     data: *mut c_char,
 }
+
+unsafe impl Send for StrContainer {}
+
+unsafe impl Sync for StrContainer {}
 
 impl ops::Deref for StrContainer {
     type Target = str;
