@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use libc::{ptrdiff_t, size_t};
 
-use crate::bridge::{FfiapiDefine, FfiapiEngine, FfiapiGoStringGoSlice, FfiapiLoader, FfiapiTransformOptions, GoString, FfiapiBuildOptions, get_allocation_pointer};
+use crate::bridge::{FfiapiBuildOptions, FfiapiDefine, FfiapiEngine, FfiapiGoStringGoSlice, FfiapiLoader, FfiapiTransformOptions, get_allocation_pointer, GoString};
 
 #[inline(always)]
 fn transform<I, S: IntoIterator<Item=I>, O, T: Fn(I) -> O>(src: S, mapper: T) -> Vec<O> {
@@ -216,6 +216,10 @@ pub struct BuildOptions {
     pub(crate) ffiapi_ptr: *const FfiapiBuildOptions,
 }
 
+unsafe impl Send for BuildOptions {}
+
+unsafe impl Sync for BuildOptions {}
+
 impl Drop for BuildOptions {
     fn drop(&mut self) {
         unsafe {
@@ -358,6 +362,10 @@ pub struct TransformOptions {
     source_file: String,
     pub(crate) ffiapi_ptr: *const FfiapiTransformOptions,
 }
+
+unsafe impl Send for TransformOptions {}
+
+unsafe impl Sync for TransformOptions {}
 
 impl Drop for TransformOptions {
     fn drop(&mut self) {
