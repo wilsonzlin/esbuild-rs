@@ -1,6 +1,6 @@
 [package]
 name = "esbuild-rs"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["Wilson Lin <code@wilsonl.in>"]
 edition = "2018"
 include = ["/src/**/*", "/build.rs", "/Cargo.toml", "/lib/go.mod", "lib/vendor/**/*"]
