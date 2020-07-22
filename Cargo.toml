@@ -13,12 +13,12 @@ categories = ["compression", "command-line-utilities", "development-tools::build
 repository = "https://github.com/wilsonzlin/esbuild-rs.git"
 
 [dependencies]
-libc = "0.2.72"
+libc = "0.2"
 
 [dev-dependencies]
 # For doc example tests.
-crossbeam = "0.7.3"
+crossbeam = "0.7"
 
 [target.'cfg(target_env = "msvc")'.dependencies]
-lazy_static = { version = "1.4.0" }
-memorymodule-rs = { version = "0.0.2" }
+lazy_static = { version = "1.4" }
+memorymodule-rs = { version = "0.0.3" }
