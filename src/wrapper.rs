@@ -94,7 +94,7 @@ pub struct Message {
 
 impl Display for Message {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{} [{}:{}:{}]", self.text.as_ref(), self.file.as_ref(), self.line, self.column)
+        write!(f, "{} [{}:{}:{}]", self.text.as_str(), self.file.as_str(), self.line, self.column)
     }
 }
 

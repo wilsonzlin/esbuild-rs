@@ -42,15 +42,15 @@ fn run_build() {
     build(options, |BuildResult { output_files, errors, warnings }| {
         println!("Build complete");
         println!("Errors:");
-        for msg in &*errors {
+        for msg in errors.as_slice() {
             println!("{}", msg);
         };
         println!("Warnings:");
-        for msg in &*warnings {
+        for msg in warnings.as_slice() {
             println!("{}", msg);
         };
-        for file in &*output_files {
-            println!("Output file {}: {}", &*file.path, &*file.data);
+        for file in output_files.as_slice() {
+            println!("Output file {}: {}", file.path.as_str(), file.data.as_str());
         };
         drop(build_wg);
     });
@@ -103,20 +103,20 @@ fn run_transform() {
     let options = options_builder.build();
 
     let transform_wg = wg.clone();
-    transform(code, options, |TransformResult { js, js_source_map, errors, warnings }| {
+    transform_direct(code, options, |TransformResult { js, js_source_map, errors, warnings }| {
         println!("Transform complete");
         println!("Errors:");
-        for msg in &*errors {
+        for msg in errors.as_slice() {
             println!("{}", msg);
         };
         println!("Warnings:");
-        for msg in &*warnings {
+        for msg in warnings.as_slice() {
             println!("{}", msg);
         };
         println!("Result:");
-        println!("{}", &*js);
+        println!("{}", js.as_str());
         println!("Source map:");
-        println!("{}", &*js_source_map);
+        println!("{}", js_source_map.as_str());
         drop(transform_wg);
     });
 

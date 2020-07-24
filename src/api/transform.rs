@@ -140,7 +140,7 @@ pub struct TransformFuture {
     state: Arc<Mutex<TransformFutureState>>,
 }
 
-/// Future wrapper that uses `transform_direct` internally.
+/// Future wrapper for `transform_direct`.
 ///
 /// # Arguments
 ///
