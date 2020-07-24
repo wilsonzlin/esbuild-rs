@@ -39,7 +39,7 @@ fn run_build() {
     let options = options_builder.build();
 
     let build_wg = wg.clone();
-    build(options, |BuildResult { output_files, errors, warnings }| {
+    build_direct(options, |BuildResult { output_files, errors, warnings }| {
         println!("Build complete");
         println!("Errors:");
         for msg in errors.as_slice() {

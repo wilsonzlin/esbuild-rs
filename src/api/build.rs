@@ -1,5 +1,8 @@
+use std::future::Future;
 use std::os::raw::c_void;
-use std::sync::Arc;
+use std::pin::Pin;
+use std::sync::{Arc, Mutex};
+use std::task::{Context, Poll, Waker};
 
 use libc::size_t;
 
@@ -72,22 +75,23 @@ extern "C" fn build_callback(
 ///
 /// ```
 /// use crossbeam::sync::WaitGroup;
-/// use esbuild_rs::{BuildOptionsBuilder, build, BuildResult};
+/// use esbuild_rs::{BuildOptionsBuilder, build_direct, BuildResult};
 ///
 /// fn main() {
-///   let wg = WaitGroup::new();
 ///   let mut options_builder = BuildOptionsBuilder::new();
 ///   options_builder.entry_points.push("index.js".to_string());
 ///   let options = options_builder.build();
+///
+///   let wg = WaitGroup::new();
 ///   let task = wg.clone();
-///   build(options, |BuildResult { output_files, errors, warnings }| {
+///   build_direct(options, |BuildResult { output_files, errors, warnings }| {
 ///     println!("Build complete!");
 ///     drop(task);
 ///   });
 ///   wg.wait();
 /// }
 /// ```
-pub fn build<F>(options: Arc<BuildOptions>, cb: F) -> ()
+pub fn build_direct<F>(options: Arc<BuildOptions>, cb: F) -> ()
     where F: FnOnce(BuildResult),
           F: Send + 'static,
 {
@@ -113,5 +117,72 @@ pub fn build<F>(options: Arc<BuildOptions>, cb: F) -> ()
             data as *mut c_void,
             options.ffiapi_ptr,
         );
+    }
+}
+
+struct BuildFutureState {
+    result: Option<BuildResult>,
+    waker: Option<Waker>,
+}
+
+pub struct BuildFuture {
+    state: Arc<Mutex<BuildFutureState>>,
+}
+
+/// Future wrapper for `build_direct`.
+///
+/// # Arguments
+///
+/// * `options` - Built BuildOptions created from a BuildOptionsBuilder. A reference will be
+///   held on the Arc until the Future completes.
+///
+/// # Examples
+///
+/// This example uses the [async-std](https://crates.io/crates/async-std) async runtime.
+///
+/// ```
+/// use std::sync::Arc;
+/// use async_std::task;
+/// use esbuild_rs::{BuildOptionsBuilder, build, BuildResult};
+///
+/// fn main() {
+///   let mut options_builder = BuildOptionsBuilder::new();
+///   options_builder.entry_points.push("index.js".to_string());
+///   let options = options_builder.build();
+///
+///   let res = task::block_on(build(options));
+///   assert_eq!(res.js.as_str(), "let x = world;\n");
+/// }
+/// ```
+pub fn build(options: Arc<BuildOptions>) -> BuildFuture {
+    let state = Arc::new(Mutex::new(BuildFutureState {
+        result: None,
+        waker: None,
+    }));
+    let state_cb_copy = state.clone();
+    build_direct(options, move |result| {
+        let mut state = state_cb_copy.lock().unwrap();
+        state.result = Some(result);
+        if let Some(waker) = state.waker.take() {
+            waker.wake();
+        };
+    });
+    BuildFuture {
+        state,
+    }
+}
+
+impl Future for BuildFuture {
+    type Output = BuildResult;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let mut state = self.state.lock().unwrap();
+        match state.result.take() {
+            Some(result) => Poll::Ready(result),
+            None => {
+                state.waker = Some(cx.waker().clone());
+                Poll::Pending
+            }
+        }
     }
 }
