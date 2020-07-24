@@ -151,7 +151,6 @@ pub struct BuildFuture {
 ///   let options = options_builder.build();
 ///
 ///   let res = task::block_on(build(options));
-///   assert_eq!(res.js.as_str(), "let x = world;\n");
 /// }
 /// ```
 pub fn build(options: Arc<BuildOptions>) -> BuildFuture {
