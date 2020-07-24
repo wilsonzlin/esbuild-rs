@@ -17,6 +17,7 @@ libc = "0.2"
 
 [dev-dependencies]
 # For doc example tests.
+async-std = "1.6"
 crossbeam = "0.7"
 
 [target.'cfg(target_env = "msvc")'.dependencies]

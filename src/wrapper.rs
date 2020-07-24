@@ -1,4 +1,4 @@
-use std::{fmt, ops, slice, str};
+use std::{convert, fmt, slice, str};
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::os::raw::{c_char, c_void};
@@ -20,17 +20,21 @@ pub struct SliceContainer<T> {
     pub(crate) len: usize,
 }
 
+impl <T> SliceContainer<T> {
+    pub fn as_slice(&self) -> &[T] {
+        unsafe {
+            slice::from_raw_parts(self.ptr, self.len)
+        }
+    }
+}
+
 unsafe impl<T> Send for SliceContainer<T> {}
 
 unsafe impl<T> Sync for SliceContainer<T> {}
 
-impl<T> ops::Deref for SliceContainer<T> {
-    type Target = [T];
-
-    fn deref(&self) -> &Self::Target {
-        unsafe {
-            slice::from_raw_parts(self.ptr, self.len)
-        }
+impl<T> convert::AsRef<[T]> for SliceContainer<T> {
+    fn as_ref(&self) -> &[T] {
+        self.as_slice()
     }
 }
 
@@ -51,17 +55,21 @@ pub struct StrContainer {
     data: *mut c_char,
 }
 
+impl StrContainer {
+    pub fn as_str(&self) -> &str {
+        unsafe {
+            str::from_utf8_unchecked(slice::from_raw_parts(self.data as *mut u8, self.len))
+        }
+    }
+}
+
 unsafe impl Send for StrContainer {}
 
 unsafe impl Sync for StrContainer {}
 
-impl ops::Deref for StrContainer {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        unsafe {
-            str::from_utf8_unchecked(slice::from_raw_parts(self.data as *mut u8, self.len))
-        }
+impl convert::AsRef<str> for StrContainer {
+    fn as_ref(&self) -> &str {
+        self.as_str()
     }
 }
 
@@ -86,7 +94,7 @@ pub struct Message {
 
 impl Display for Message {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{} [{}:{}:{}]", &*self.text, &*self.file, self.line, self.column)
+        write!(f, "{} [{}:{}:{}]", self.text.as_ref(), self.file.as_ref(), self.line, self.column)
     }
 }
 
