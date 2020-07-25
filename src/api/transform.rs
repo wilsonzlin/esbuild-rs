@@ -60,8 +60,8 @@ extern "C" fn transform_callback(
 
 unsafe fn call_ffi_transform(cb_data: *mut TransformInvocationData, go_code: GoString, options: &TransformOptions) -> () {
     #[cfg(target_env = "msvc")]
-        #[allow(non_snake_case)]
-        let GoTransform = std::mem::transmute::<_, GoTransform>(crate::bridge::DLL.get_function("GoTransform"));
+    #[allow(non_snake_case)]
+    let GoTransform = std::mem::transmute::<_, GoTransform>(crate::bridge::DLL.get_function("GoTransform"));
 
     // We can safely convert anything in TransformOptions into raw pointers, as the memory is managed the the Arc and we only used owned values.
     GoTransform(
