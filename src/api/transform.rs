@@ -1,17 +1,17 @@
+use std::future::Future;
 use std::os::raw::c_void;
+use std::pin::Pin;
 use std::sync::{Arc, Mutex};
+use std::task::{Context, Poll, Waker};
 
 use libc::size_t;
 
 use crate::bridge::{GoString, GoTransform};
 use crate::wrapper::{Message, SliceContainer, StrContainer, TransformOptions, TransformResult};
-use std::future::Future;
-use std::task::{Context, Poll, Waker};
-use std::pin::Pin;
 
 struct TransformInvocationData {
-    src_vec_arc_raw: *const Vec<u8>,
-    opt_arc_raw: *const TransformOptions,
+    src_vec_arc_raw: Option<*const Vec<u8>>,
+    opt_arc_raw: Option<*const TransformOptions>,
     cb_trait_ptr: *mut c_void,
 }
 
@@ -28,10 +28,14 @@ extern "C" fn transform_callback(
         let cb_data: Box<TransformInvocationData> = Box::from_raw(raw_cb_data as *mut _);
 
         // Drop source code refcount.
-        let _: Arc<Vec<u8>> = Arc::from_raw(cb_data.src_vec_arc_raw);
+        if let Some(ptr) = cb_data.src_vec_arc_raw {
+            let _: Arc<Vec<u8>> = Arc::from_raw(ptr);
+        };
 
         // Drop options refcount.
-        let _: Arc<TransformOptions> = Arc::from_raw(cb_data.opt_arc_raw);
+        if let Some(ptr) = cb_data.opt_arc_raw {
+            let _: Arc<TransformOptions> = Arc::from_raw(ptr);
+        };
 
         let rust_cb_trait_box: Box<Box<dyn FnOnce(TransformResult)>>
             = Box::from_raw(cb_data.cb_trait_ptr as *mut _);
@@ -52,6 +56,42 @@ extern "C" fn transform_callback(
             warnings,
         });
     };
+}
+
+unsafe fn call_ffi_transform(cb_data: *mut TransformInvocationData, go_code: GoString, options: &TransformOptions) -> () {
+    #[cfg(target_env = "msvc")]
+        #[allow(non_snake_case)]
+        let GoTransform = std::mem::transmute::<_, GoTransform>(crate::bridge::DLL.get_function("GoTransform"));
+
+    // We can safely convert anything in TransformOptions into raw pointers, as the memory is managed the the Arc and we only used owned values.
+    GoTransform(
+        libc::malloc,
+        transform_callback,
+        cb_data as *mut c_void,
+        go_code,
+        options.ffiapi_ptr,
+    );
+}
+
+pub unsafe fn transform_direct_unmanaged<F>(code: &[u8], options: &TransformOptions, cb: F) -> ()
+    where F: FnOnce(TransformResult),
+          F: Send + 'static,
+{
+    // Prepare code.
+    let go_code = GoString::from_bytes_unmanaged(code);
+
+    // Prepare callback.
+    let cb_box = Box::new(cb) as Box<dyn FnOnce(TransformResult)>;
+    let cb_trait_box = Box::new(cb_box);
+    let cb_trait_ptr = Box::into_raw(cb_trait_box);
+
+    let data = Box::into_raw(Box::new(TransformInvocationData {
+        src_vec_arc_raw: None,
+        opt_arc_raw: None,
+        cb_trait_ptr: cb_trait_ptr as *mut c_void,
+    }));
+
+    call_ffi_transform(data, go_code, options);
 }
 
 /// This function transforms a string of source code into JavaScript. It can be used to minify
@@ -110,25 +150,12 @@ pub fn transform_direct<F>(code: Arc<Vec<u8>>, options: Arc<TransformOptions>, c
     let cb_trait_ptr = Box::into_raw(cb_trait_box);
 
     let data = Box::into_raw(Box::new(TransformInvocationData {
-        src_vec_arc_raw: Arc::into_raw(code.clone()),
-        opt_arc_raw: Arc::into_raw(options.clone()),
+        src_vec_arc_raw: Some(Arc::into_raw(code.clone())),
+        opt_arc_raw: Some(Arc::into_raw(options.clone())),
         cb_trait_ptr: cb_trait_ptr as *mut c_void,
     }));
 
-    unsafe {
-        #[cfg(target_env = "msvc")]
-        #[allow(non_snake_case)]
-        let GoTransform = std::mem::transmute::<_, GoTransform>(crate::bridge::DLL.get_function("GoTransform"));
-
-        // We can safely convert anything in TransformOptions into raw pointers, as the memory is managed the the Arc and we only used owned values.
-        GoTransform(
-            libc::malloc,
-            transform_callback,
-            data as *mut c_void,
-            go_code,
-            options.ffiapi_ptr,
-        );
-    }
+    unsafe { call_ffi_transform(data, go_code, options.as_ref()); };
 }
 
 struct TransformFutureState {
