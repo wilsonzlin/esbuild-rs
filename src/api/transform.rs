@@ -98,9 +98,9 @@ pub unsafe fn transform_direct_unmanaged<F>(code: &[u8], options: &TransformOpti
 /// JavaScript, convert TypeScript/JSX to JavaScript, or convert newer JavaScript to older
 /// JavaScript. The available options roughly correspond to esbuild's command-line flags.
 ///
-/// The equivalent Go function will be called via Cgo, which will run the API from a Goroutine. This
+/// The equivalent Go function will be called via Cgo, which will run the API from a goroutine. This
 /// means that this function will return immediately, and `cb` will be called sometime in the future
-/// once the Goroutine completes. Additional concurrency management may be necessary to keep the
+/// once the goroutine completes. Additional concurrency management may be necessary to keep the
 /// Rust program alive until all calls to this function actually complete.
 ///
 /// # Arguments
@@ -109,7 +109,7 @@ pub unsafe fn transform_direct_unmanaged<F>(code: &[u8], options: &TransformOpti
 ///   the callback is asynchronously called from Go.
 /// * `options` - Built TransformOptions created from a TransformOptionsBuilder. A reference will be
 ///   held on the Arc until the callback is asynchronously called from Go.
-/// * `cb` - Closure to call once the Goroutine completes with the TransformResult.
+/// * `cb` - Closure to call once the goroutine completes with the TransformResult.
 ///
 /// # Examples
 ///
