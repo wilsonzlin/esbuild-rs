@@ -41,6 +41,9 @@ impl<T> convert::AsRef<[T]> for SliceContainer<T> {
 impl<T> Drop for SliceContainer<T> {
     fn drop(&mut self) {
         unsafe {
+            for i in 0..self.len {
+                drop(self.ptr.offset(i as isize));
+            };
             // We pass `malloc` to Go as the allocator.
             libc::free(self.ptr as *mut c_void);
         };
