@@ -1,9 +1,0 @@
-[package]
-name = "demo"
-version = "0.0.1"
-authors = ["Wilson Lin <code@wilsonl.in>"]
-edition = "2018"
-
-[dependencies]
-crossbeam = "0.7.3"
-esbuild-rs = { path = ".." }
