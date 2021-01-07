@@ -4,7 +4,7 @@ Rust wrapper for esbuild using FFI and Cgo. [esbuild](https://github.com/evanw/e
 
 ## Using
 
-This library requires Go 1.13 or higher. The Go source is included and compiled at build time. The build will not interfere with or create files in `GOROOT` or `GOPATH`, or download any dependencies.
+This library requires Go 1.13 or higher. The Go source is included and compiled at build time. The build will not interfere with or create files in `GOROOT` or `GOPATH`, or download any Go dependencies.
 
 Check the [docs](https://docs.rs/esbuild-rs/) for the API.
 
