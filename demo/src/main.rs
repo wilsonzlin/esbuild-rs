@@ -103,7 +103,7 @@ fn run_transform() {
     let options = options_builder.build();
 
     let transform_wg = wg.clone();
-    transform_direct(code, options, |TransformResult { js, js_source_map, errors, warnings }| {
+    transform_direct(code, options, |TransformResult { code, map, errors, warnings }| {
         println!("Transform complete");
         println!("Errors:");
         for msg in errors.as_slice() {
@@ -114,9 +114,9 @@ fn run_transform() {
             println!("{}", msg);
         };
         println!("Result:");
-        println!("{}", js.as_str());
+        println!("{}", code.as_str());
         println!("Source map:");
-        println!("{}", js_source_map.as_str());
+        println!("{}", map.as_str());
         drop(transform_wg);
     });
 

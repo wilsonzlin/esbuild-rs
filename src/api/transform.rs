@@ -17,8 +17,8 @@ struct TransformInvocationData {
 
 extern "C" fn transform_callback(
     raw_cb_data: *mut c_void,
-    js: StrContainer,
-    js_source_map: StrContainer,
+    code: StrContainer,
+    map: StrContainer,
     raw_errors: *mut Message,
     errors_len: size_t,
     raw_warnings: *mut Message,
@@ -50,8 +50,8 @@ extern "C" fn transform_callback(
         };
 
         rust_cb_trait_box(TransformResult {
-            js,
-            js_source_map,
+            code,
+            map,
             errors,
             warnings,
         });
@@ -125,13 +125,13 @@ pub unsafe fn transform_direct_unmanaged<F>(code: &[u8], options: &TransformOpti
 ///   let src = Arc::new(b"let x = NAME;".to_vec());
 ///
 ///   let mut options_builder = TransformOptionsBuilder::new();
-///   options_builder.defines.insert("NAME".to_string(), "world".to_string());
+///   options_builder.define.insert("NAME".to_string(), "world".to_string());
 ///   let options = options_builder.build();
 ///
 ///   let wg = WaitGroup::new();
 ///   let task = wg.clone();
-///   transform_direct(src, options, |TransformResult { js, js_source_map, errors, warnings }| {
-///     assert_eq!(js.as_str(), "let x = world;\n");
+///   transform_direct(src, options, |TransformResult { code, map, errors, warnings }| {
+///     assert_eq!(code.as_str(), "let x = world;\n");
 ///     drop(task);
 ///   });
 ///   wg.wait();
@@ -189,11 +189,11 @@ pub struct TransformFuture {
 ///   let src = Arc::new(b"let x = NAME;".to_vec());
 ///
 ///   let mut options_builder = TransformOptionsBuilder::new();
-///   options_builder.defines.insert("NAME".to_string(), "world".to_string());
+///   options_builder.define.insert("NAME".to_string(), "world".to_string());
 ///   let options = options_builder.build();
 ///
 ///   let res = task::block_on(transform(src, options));
-///   assert_eq!(res.js.as_str(), "let x = world;\n");
+///   assert_eq!(res.code.as_str(), "let x = world;\n");
 /// }
 /// ```
 pub fn transform(code: Arc<Vec<u8>>, options: Arc<TransformOptions>) -> TransformFuture {

@@ -72,14 +72,14 @@ impl FfiapiGoStringGoSlice {
 }
 
 #[repr(C)]
-pub struct FfiapiDefine {
+pub struct FfiapiMapStringStringEntry {
     pub name: GoString,
     pub value: GoString,
 }
 
-impl FfiapiDefine {
-    pub fn from_map_entry((name, value): (String, String)) -> FfiapiDefine {
-        FfiapiDefine {
+impl FfiapiMapStringStringEntry {
+    pub fn from_map_entry((name, value): (String, String)) -> FfiapiMapStringStringEntry {
+        FfiapiMapStringStringEntry {
             name: GoString::from_string(name),
             value: GoString::from_string(value),
         }
@@ -130,8 +130,8 @@ pub type BuildApiCallback = extern "C" fn(
 
 pub type TransformApiCallback = extern "C" fn(
     cb_data: *mut c_void,
-    js: StrContainer,
-    js_source_map: StrContainer,
+    code: StrContainer,
+    map: StrContainer,
     errors: *mut Message,
     errors_len: size_t,
     warnings: *mut Message,
@@ -141,23 +141,27 @@ pub type TransformApiCallback = extern "C" fn(
 #[repr(C)]
 pub struct FfiapiBuildOptions {
     pub source_map: u8,
+    pub sources_content: u8,
+
     pub target: u8,
     pub engines: *const FfiapiEngine,
     pub engines_len: size_t,
-    pub strict_nullish_coalescing: bool,
-    pub strict_class_fields: bool,
 
     pub minify_whitespace: bool,
     pub minify_identifiers: bool,
     pub minify_syntax: bool,
+    pub charset: u8,
+    pub tree_shaking: u8,
 
     pub jsx_factory: GoString,
     pub jsx_fragment: GoString,
 
-    pub defines: *const FfiapiDefine,
-    pub defines_len: size_t,
+    pub define: *const FfiapiMapStringStringEntry,
+    pub define_len: size_t,
     // Slice of GoStrings.
-    pub pure_functions: FfiapiGoStringGoSlice,
+    pub pure: FfiapiGoStringGoSlice,
+    pub avoid_tdz: bool,
+    pub keep_names: bool,
 
     pub global_name: GoString,
     pub bundle: bool,
@@ -165,40 +169,61 @@ pub struct FfiapiBuildOptions {
     pub outfile: GoString,
     pub metafile: GoString,
     pub outdir: GoString,
+    pub outbase: GoString,
     pub platform: u8,
     pub format: u8,
     // Slice of GoStrings.
-    pub externals: FfiapiGoStringGoSlice,
-    pub loaders: *const FfiapiLoader,
-    pub loaders_len: size_t,
+    pub external: FfiapiGoStringGoSlice,
+    // Slice of GoStrings.
+    pub main_fields: FfiapiGoStringGoSlice,
+    pub loader: *const FfiapiLoader,
+    pub loader_len: size_t,
     // Slice of GoStrings.
     pub resolve_extensions: FfiapiGoStringGoSlice,
     pub tsconfig: GoString,
+    pub out_extensions: *const FfiapiMapStringStringEntry,
+    pub out_extensions_len: size_t,
+    pub public_path: GoString,
+    // Slice of GoStrings.
+    pub inject: FfiapiGoStringGoSlice,
+    pub banner: GoString,
+    pub footer: GoString,
 
     // Slice of GoStrings.
     pub entry_points: FfiapiGoStringGoSlice,
+    pub write: bool,
+    pub incremental: bool,
 }
 
 #[repr(C)]
 pub struct FfiapiTransformOptions {
     pub source_map: u8,
+    pub sources_content: u8,
+
     pub target: u8,
+    pub format: u8,
+    pub global_name: GoString,
     pub engines: *const FfiapiEngine,
     pub engines_len: size_t,
-    pub strict_nullish_coalescing: bool,
-    pub strict_class_fields: bool,
 
     pub minify_whitespace: bool,
     pub minify_identifiers: bool,
     pub minify_syntax: bool,
+    pub charset: u8,
+    pub tree_shaking: u8,
 
     pub jsx_factory: GoString,
     pub jsx_fragment: GoString,
+    pub tsconfig_raw: GoString,
+    pub footer: GoString,
+    pub banner: GoString,
 
-    pub defines: *const FfiapiDefine,
-    pub defines_len: size_t,
+    pub define: *const FfiapiMapStringStringEntry,
+    pub define_len: size_t,
     // Slice of GoStrings.
-    pub pure_functions: FfiapiGoStringGoSlice,
+    pub pure: FfiapiGoStringGoSlice,
+    pub avoid_tdz: bool,
+    pub keep_names: bool,
 
     pub source_file: GoString,
     pub loader: u8,
