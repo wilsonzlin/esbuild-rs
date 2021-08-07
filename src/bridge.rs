@@ -3,7 +3,7 @@ use std::os::raw::{c_char, c_void};
 
 use libc::{ptrdiff_t, size_t};
 
-use crate::wrapper::{Engine, Loader, Message, OutputFile, StrContainer};
+use crate::wrapper::{Engine, EntryPoint, Loader, Message, OutputFile, StrContainer};
 
 const DUMMY_SAFE_PTR: &[u8] = &[0u8; 1024];
 
@@ -102,6 +102,21 @@ impl FfiapiEngine {
 }
 
 #[repr(C)]
+pub struct FfiapiEntryPoint {
+    pub input_path: GoString,
+    pub output_path: GoString,
+}
+
+impl FfiapiEntryPoint {
+    pub fn from_entry_point(ep: EntryPoint) -> FfiapiEntryPoint {
+        FfiapiEntryPoint {
+            input_path: GoString::from_string(ep.input_path),
+            output_path: GoString::from_string(ep.output_path),
+        }
+    }
+}
+
+#[repr(C)]
 pub struct FfiapiLoader {
     pub name: GoString,
     pub loader: u8,
@@ -141,6 +156,7 @@ pub type TransformApiCallback = extern "C" fn(
 #[repr(C)]
 pub struct FfiapiBuildOptions {
     pub source_map: u8,
+    pub source_root: GoString,
     pub sources_content: u8,
 
     pub target: u8,
@@ -152,7 +168,9 @@ pub struct FfiapiBuildOptions {
     pub minify_syntax: bool,
     pub charset: u8,
     pub tree_shaking: u8,
+    pub legal_comments: u8,
 
+    pub jsx_mode: u8,
     pub jsx_factory: GoString,
     pub jsx_fragment: GoString,
 
@@ -160,22 +178,25 @@ pub struct FfiapiBuildOptions {
     pub define_len: size_t,
     // Slice of GoStrings.
     pub pure: FfiapiGoStringGoSlice,
-    pub avoid_tdz: bool,
     pub keep_names: bool,
 
     pub global_name: GoString,
     pub bundle: bool,
+    pub preserve_symlinks: bool,
     pub splitting: bool,
     pub outfile: GoString,
-    pub metafile: GoString,
+    pub metafile: bool,
     pub outdir: GoString,
     pub outbase: GoString,
+    pub abs_working_dir: GoString,
     pub platform: u8,
     pub format: u8,
     // Slice of GoStrings.
     pub external: FfiapiGoStringGoSlice,
     // Slice of GoStrings.
     pub main_fields: FfiapiGoStringGoSlice,
+    // Slice of GoStrings.
+    pub conditions: FfiapiGoStringGoSlice,
     pub loader: *const FfiapiLoader,
     pub loader_len: size_t,
     // Slice of GoStrings.
@@ -186,18 +207,31 @@ pub struct FfiapiBuildOptions {
     pub public_path: GoString,
     // Slice of GoStrings.
     pub inject: FfiapiGoStringGoSlice,
-    pub banner: GoString,
-    pub footer: GoString,
+    pub banner: *const FfiapiMapStringStringEntry,
+    pub banner_len: size_t,
+    pub footer: *const FfiapiMapStringStringEntry,
+    pub footer_len: size_t,
+    // Slice of GoStrings.
+    pub node_paths: FfiapiGoStringGoSlice,
+
+    pub entry_names: GoString,
+    pub chunk_names: GoString,
+    pub asset_names: GoString,
 
     // Slice of GoStrings.
     pub entry_points: FfiapiGoStringGoSlice,
+    pub entry_points_advanced: *const FfiapiEntryPoint,
+    pub entry_points_advanced_len: size_t,
+
     pub write: bool,
+    pub allow_overwrite: bool,
     pub incremental: bool,
 }
 
 #[repr(C)]
 pub struct FfiapiTransformOptions {
     pub source_map: u8,
+    pub source_root: GoString,
     pub sources_content: u8,
 
     pub target: u8,
@@ -211,9 +245,12 @@ pub struct FfiapiTransformOptions {
     pub minify_syntax: bool,
     pub charset: u8,
     pub tree_shaking: u8,
+    pub legal_comments: u8,
 
+    pub jsx_mode: u8,
     pub jsx_factory: GoString,
     pub jsx_fragment: GoString,
+
     pub tsconfig_raw: GoString,
     pub footer: GoString,
     pub banner: GoString,
@@ -222,7 +259,6 @@ pub struct FfiapiTransformOptions {
     pub define_len: size_t,
     // Slice of GoStrings.
     pub pure: FfiapiGoStringGoSlice,
-    pub avoid_tdz: bool,
     pub keep_names: bool,
 
     pub source_file: GoString,

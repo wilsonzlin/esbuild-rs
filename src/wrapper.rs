@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use libc::{ptrdiff_t, size_t};
 
-use crate::bridge::{FfiapiBuildOptions, FfiapiMapStringStringEntry, FfiapiEngine, FfiapiGoStringGoSlice, FfiapiLoader, FfiapiTransformOptions, get_allocation_pointer, GoString};
+use crate::bridge::{FfiapiBuildOptions, FfiapiMapStringStringEntry, FfiapiEngine, FfiapiGoStringGoSlice, FfiapiLoader, FfiapiTransformOptions, get_allocation_pointer, GoString, FfiapiEntryPoint};
 
 #[inline(always)]
 fn transform<I, S: IntoIterator<Item=I>, O, T: Fn(I) -> O>(src: S, mapper: T) -> Vec<O> {
@@ -134,6 +134,22 @@ pub enum Format {
 }
 
 #[derive(Copy, Clone)]
+pub enum JSXMode {
+    Transform,
+    Preserve,
+}
+
+#[derive(Copy, Clone)]
+pub enum LegalComments {
+    Default,
+    None,
+    Inline,
+    EndOfFile,
+    Linked,
+    External,
+}
+
+#[derive(Copy, Clone)]
 pub enum Loader {
     None,
     JS,
@@ -194,6 +210,12 @@ pub struct Engine {
     pub version: String,
 }
 
+#[derive(Clone)]
+pub struct EntryPoint {
+    pub input_path: String,
+    pub output_path: String,
+}
+
 // BuildOptions and TransformOptions are nice APIs that mimics official Go API and use standard Rust
 // types. They're similar to Ffiapi*Options, but we create a separate struct for ease of use, as
 // Ffiapi*Options uses raw pointers which are difficult to mutate, either directly or in
@@ -202,6 +224,7 @@ pub struct Engine {
 #[derive(Clone)]
 pub struct BuildOptionsBuilder {
     pub source_map: SourceMap,
+    pub source_root: String,
     pub sources_content: SourcesContent,
 
     pub target: Target,
@@ -212,42 +235,55 @@ pub struct BuildOptionsBuilder {
     pub minify_syntax: bool,
     pub charset: Charset,
     pub tree_shaking: TreeShaking,
+    pub legal_comments: LegalComments,
 
+    pub jsx_mode: JSXMode,
     pub jsx_factory: String,
     pub jsx_fragment: String,
 
     pub define: HashMap<String, String>,
     pub pure: Vec<String>,
-    pub avoid_tdz: bool,
     pub keep_names: bool,
 
     pub global_name: String,
     pub bundle: bool,
+    pub preserve_symlinks: bool,
     pub splitting: bool,
     pub outfile: String,
-    pub metafile: String,
+    pub metafile: bool,
     pub outdir: String,
     pub outbase: String,
+    pub abs_working_dir: String,
     pub platform: Platform,
     pub format: Format,
     pub external: Vec<String>,
     pub main_fields: Vec<String>,
+    pub conditions: Vec<String>,
     pub loader: HashMap<String, Loader>,
     pub resolve_extensions: Vec<String>,
     pub tsconfig: String,
     pub out_extensions: HashMap<String, String>,
     pub public_path: String,
     pub inject: Vec<String>,
-    pub banner: String,
-    pub footer: String,
+    pub banner: HashMap<String, String>,
+    pub footer: HashMap<String, String>,
+    pub node_paths: Vec<String>,
+
+    pub entry_names: String,
+    pub chunk_names: String,
+    pub asset_names: String,
 
     pub entry_points: Vec<String>,
+    pub entry_points_advanced: Vec<EntryPoint>,
+
     pub write: bool,
+    pub allow_overwrite: bool,
     pub incremental: bool,
 }
 
 pub struct BuildOptions {
     // We keep data that fields of ffiapi_ptr point to.
+    source_root: String,
     engines: Vec<FfiapiEngine>,
     jsx_factory: String,
     jsx_fragment: String,
@@ -255,20 +291,26 @@ pub struct BuildOptions {
     pure: Vec<GoString>,
     global_name: String,
     outfile: String,
-    metafile: String,
     outdir: String,
     outbase: String,
+    abs_working_dir: String,
     external: Vec<GoString>,
     main_fields: Vec<GoString>,
+    conditions: Vec<GoString>,
     loader: Vec<FfiapiLoader>,
     resolve_extensions: Vec<GoString>,
     tsconfig: String,
     out_extensions: Vec<FfiapiMapStringStringEntry>,
     public_path: String,
     inject: Vec<GoString>,
-    banner: String,
-    footer: String,
+    banner: Vec<FfiapiMapStringStringEntry>,
+    footer: Vec<FfiapiMapStringStringEntry>,
+    node_paths: Vec<GoString>,
+    entry_names: String,
+    chunk_names: String,
+    asset_names: String,
     entry_points: Vec<GoString>,
+    entry_points_advanced: Vec<FfiapiEntryPoint>,
     pub(crate) ffiapi_ptr: *const FfiapiBuildOptions,
 }
 
@@ -288,6 +330,7 @@ impl BuildOptionsBuilder {
     pub fn new() -> BuildOptionsBuilder {
         BuildOptionsBuilder {
             source_map: SourceMap::None,
+            source_root: "".to_string(),
             sources_content: SourcesContent::Include,
             target: Target::ESNext,
             engines: vec![],
@@ -296,33 +339,43 @@ impl BuildOptionsBuilder {
             minify_syntax: false,
             charset: Charset::Default,
             tree_shaking: TreeShaking::Default,
+            legal_comments: LegalComments::Default,
+            jsx_mode: JSXMode::Transform,
             jsx_factory: "".to_string(),
             jsx_fragment: "".to_string(),
             define: Default::default(),
             pure: vec![],
-            avoid_tdz: false,
             keep_names: false,
             global_name: "".to_string(),
             bundle: false,
+            preserve_symlinks: false,
             splitting: false,
             outfile: "".to_string(),
-            metafile: "".to_string(),
+            metafile: false,
             outdir: "".to_string(),
             outbase: "".to_string(),
+            abs_working_dir: "".to_string(),
             platform: Platform::Browser,
             format: Format::Default,
             external: vec![],
             main_fields: vec![],
+            conditions: vec![],
             loader: Default::default(),
             resolve_extensions: vec![],
             tsconfig: "".to_string(),
             out_extensions: Default::default(),
             public_path: "".to_string(),
             inject: vec![],
-            banner: "".to_string(),
-            footer: "".to_string(),
+            banner: Default::default(),
+            footer: Default::default(),
+            node_paths: vec![],
+            entry_names: "".to_string(),
+            chunk_names: "".to_string(),
+            asset_names: "".to_string(),
             entry_points: vec![],
+            entry_points_advanced: vec![],
             write: false,
+            allow_overwrite: false,
             incremental: false
         }
     }
@@ -331,6 +384,7 @@ impl BuildOptionsBuilder {
         let mut res = Arc::new(BuildOptions {
             // We move into Arc first before creating pointers to data in it, as the move to the
             // heap by Arc should change the data's location.
+            source_root: self.source_root,
             engines: transform(self.engines, FfiapiEngine::from_engine),
             jsx_factory: self.jsx_factory,
             jsx_fragment: self.jsx_fragment,
@@ -338,26 +392,33 @@ impl BuildOptionsBuilder {
             pure: transform(self.pure, GoString::from_string),
             global_name: self.global_name,
             outfile: self.outfile,
-            metafile: self.metafile,
             outdir: self.outdir,
             outbase: self.outbase,
+            abs_working_dir: self.abs_working_dir,
             external: transform(self.external, GoString::from_string),
             main_fields: transform(self.main_fields, GoString::from_string),
+            conditions: transform(self.conditions, GoString::from_string),
             loader: transform(self.loader, FfiapiLoader::from_map_entry),
             resolve_extensions: transform(self.resolve_extensions, GoString::from_string),
             tsconfig: self.tsconfig,
             out_extensions: transform(self.out_extensions, FfiapiMapStringStringEntry::from_map_entry),
             public_path: self.public_path,
             inject: transform(self.inject, GoString::from_string),
-            banner: self.banner,
-            footer: self.footer,
+            banner: transform(self.banner, FfiapiMapStringStringEntry::from_map_entry),
+            footer: transform(self.footer, FfiapiMapStringStringEntry::from_map_entry),
+            node_paths: transform(self.node_paths, GoString::from_string),
+            entry_names: self.entry_names,
+            chunk_names: self.chunk_names,
+            asset_names: self.asset_names,
             entry_points: transform(self.entry_points, GoString::from_string),
+            entry_points_advanced: transform(self.entry_points_advanced, FfiapiEntryPoint::from_entry_point),
             ffiapi_ptr: std::ptr::null(),
         });
 
         unsafe {
             let ffiapi_ptr = Box::into_raw(Box::new(FfiapiBuildOptions {
                 source_map: self.source_map as u8,
+                source_root: GoString::from_bytes_unmanaged(res.source_root.as_bytes()),
                 sources_content: self.sources_content as u8,
 
                 target: self.target as u8,
@@ -369,27 +430,31 @@ impl BuildOptionsBuilder {
                 minify_syntax: self.minify_syntax,
                 charset: self.charset as u8,
                 tree_shaking: self.tree_shaking as u8,
+                legal_comments: self.legal_comments as u8,
 
+                jsx_mode: self.jsx_mode as u8,
                 jsx_factory: GoString::from_bytes_unmanaged(res.jsx_factory.as_bytes()),
                 jsx_fragment: GoString::from_bytes_unmanaged(res.jsx_fragment.as_bytes()),
 
                 define: get_allocation_pointer(&res.define),
                 define_len: res.define.len(),
                 pure: FfiapiGoStringGoSlice::from_vec_unamanged(&res.pure),
-                avoid_tdz: self.avoid_tdz,
                 keep_names: self.keep_names,
 
                 global_name: GoString::from_bytes_unmanaged(res.global_name.as_bytes()),
                 bundle: self.bundle,
+                preserve_symlinks: self.preserve_symlinks,
                 splitting: self.splitting,
                 outfile: GoString::from_bytes_unmanaged(res.outfile.as_bytes()),
-                metafile: GoString::from_bytes_unmanaged(res.metafile.as_bytes()),
+                metafile: self.metafile,
                 outdir: GoString::from_bytes_unmanaged(res.outdir.as_bytes()),
                 outbase: GoString::from_bytes_unmanaged(res.outbase.as_bytes()),
+                abs_working_dir: GoString::from_bytes_unmanaged(res.abs_working_dir.as_bytes()),
                 platform: self.platform as u8,
                 format: self.format as u8,
                 external: FfiapiGoStringGoSlice::from_vec_unamanged(&res.external),
                 main_fields: FfiapiGoStringGoSlice::from_vec_unamanged(&res.main_fields),
+                conditions: FfiapiGoStringGoSlice::from_vec_unamanged(&res.conditions),
                 loader: get_allocation_pointer(&res.loader),
                 loader_len: res.loader.len(),
                 resolve_extensions: FfiapiGoStringGoSlice::from_vec_unamanged(&res.resolve_extensions),
@@ -398,11 +463,22 @@ impl BuildOptionsBuilder {
                 out_extensions_len: res.out_extensions.len(),
                 public_path: GoString::from_bytes_unmanaged(res.public_path.as_bytes()),
                 inject: FfiapiGoStringGoSlice::from_vec_unamanged(&res.inject),
-                banner: GoString::from_bytes_unmanaged(res.banner.as_bytes()),
-                footer: GoString::from_bytes_unmanaged(res.footer.as_bytes()),
+                banner: get_allocation_pointer(&res.banner),
+                banner_len: res.banner.len(),
+                footer: get_allocation_pointer(&res.footer),
+                footer_len: res.footer.len(),
+                node_paths: FfiapiGoStringGoSlice::from_vec_unamanged(&res.node_paths),
+
+                entry_names: GoString::from_bytes_unmanaged(res.entry_names.as_bytes()),
+                chunk_names: GoString::from_bytes_unmanaged(res.chunk_names.as_bytes()),
+                asset_names: GoString::from_bytes_unmanaged(res.asset_names.as_bytes()),
 
                 entry_points: FfiapiGoStringGoSlice::from_vec_unamanged(&res.entry_points),
+                entry_points_advanced: get_allocation_pointer(&res.entry_points_advanced),
+                entry_points_advanced_len: res.entry_points_advanced.len(),
+
                 write: self.write,
+                allow_overwrite: self.allow_overwrite,
                 incremental: self.incremental,
             }));
             Arc::get_mut(&mut res).unwrap().ffiapi_ptr = ffiapi_ptr;
@@ -421,6 +497,7 @@ pub struct BuildResult {
 #[derive(Clone)]
 pub struct TransformOptionsBuilder {
     pub source_map: SourceMap,
+    pub source_root: String,
     pub sources_content: SourcesContent,
 
     pub target: Target,
@@ -433,16 +510,18 @@ pub struct TransformOptionsBuilder {
     pub minify_syntax: bool,
     pub charset: Charset,
     pub tree_shaking: TreeShaking,
+    pub legal_comments: LegalComments,
 
+    pub jsx_mode: JSXMode,
     pub jsx_factory: String,
     pub jsx_fragment: String,
+
     pub tsconfig_raw: String,
     pub footer: String,
     pub banner: String,
 
     pub define: HashMap<String, String>,
     pub pure: Vec<String>,
-    pub avoid_tdz: bool,
     pub keep_names: bool,
 
     pub source_file: String,
@@ -451,6 +530,7 @@ pub struct TransformOptionsBuilder {
 
 pub struct TransformOptions {
     // We keep data that fields of ffiapi_ptr point to.
+    source_root: String,
     global_name: String,
     engines: Vec<FfiapiEngine>,
     jsx_factory: String,
@@ -480,6 +560,7 @@ impl TransformOptionsBuilder {
     pub fn new() -> TransformOptionsBuilder {
         TransformOptionsBuilder {
             source_map: SourceMap::None,
+            source_root: "".to_string(),
             sources_content: SourcesContent::Include,
             target: Target::ESNext,
             format: Format::Default,
@@ -490,6 +571,8 @@ impl TransformOptionsBuilder {
             minify_syntax: false,
             charset: Charset::Default,
             tree_shaking: TreeShaking::Default,
+            legal_comments: LegalComments::Default,
+            jsx_mode: JSXMode::Transform,
             jsx_factory: "".to_string(),
             jsx_fragment: "".to_string(),
             tsconfig_raw: "".to_string(),
@@ -497,7 +580,6 @@ impl TransformOptionsBuilder {
             banner: "".to_string(),
             define: Default::default(),
             pure: vec![],
-            avoid_tdz: false,
             keep_names: false,
             source_file: "".to_string(),
             loader: Loader::None
@@ -508,6 +590,7 @@ impl TransformOptionsBuilder {
         let mut res = Arc::new(TransformOptions {
             // We move into Arc first before creating pointers to data in it, as the move to the
             // heap by Arc should change the data's location.
+            source_root: self.source_root,
             global_name: self.global_name,
             engines: transform(self.engines, FfiapiEngine::from_engine),
             jsx_factory: self.jsx_factory,
@@ -524,6 +607,7 @@ impl TransformOptionsBuilder {
         unsafe {
             let ffiapi_ptr = Box::into_raw(Box::new(FfiapiTransformOptions {
                 source_map: self.source_map as u8,
+                source_root: GoString::from_bytes_unmanaged(res.source_root.as_bytes()),
                 sources_content: self.sources_content as u8,
 
                 target: self.target as u8,
@@ -537,7 +621,9 @@ impl TransformOptionsBuilder {
                 minify_syntax: self.minify_syntax,
                 charset: self.charset as u8,
                 tree_shaking: self.tree_shaking as u8,
+                legal_comments: self.legal_comments as u8,
 
+                jsx_mode: self.jsx_mode as u8,
                 jsx_factory: GoString::from_bytes_unmanaged(res.jsx_factory.as_bytes()),
                 jsx_fragment: GoString::from_bytes_unmanaged(res.jsx_fragment.as_bytes()),
                 tsconfig_raw: GoString::from_bytes_unmanaged(res.tsconfig_raw.as_bytes()),
@@ -547,7 +633,6 @@ impl TransformOptionsBuilder {
                 define: get_allocation_pointer(&res.define),
                 define_len: res.define.len(),
                 pure: FfiapiGoStringGoSlice::from_vec_unamanged(&res.pure),
-                avoid_tdz: self.avoid_tdz,
                 keep_names: self.keep_names,
 
                 source_file: GoString::from_bytes_unmanaged(res.source_file.as_bytes()),
