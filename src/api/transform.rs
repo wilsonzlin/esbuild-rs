@@ -75,7 +75,6 @@ unsafe fn call_ffi_transform(cb_data: *mut TransformInvocationData, go_code: GoS
 
 pub unsafe fn transform_direct_unmanaged<F>(code: &[u8], options: &TransformOptions, cb: F) -> ()
     where F: FnOnce(TransformResult),
-          F: Send + 'static,
 {
     // Prepare code.
     let go_code = GoString::from_bytes_unmanaged(code);
