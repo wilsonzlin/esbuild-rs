@@ -37,8 +37,8 @@ extern "C" fn transform_callback(
             let _: Arc<TransformOptions> = Arc::from_raw(ptr);
         };
 
-        let rust_cb_trait_box: Box<Box<dyn FnOnce(TransformResult)>>
-            = Box::from_raw(cb_data.cb_trait_ptr as *mut _);
+        let rust_cb_trait_box: Box<Box<dyn FnOnce(TransformResult)>> =
+            Box::from_raw(cb_data.cb_trait_ptr as *mut _);
 
         let errors = SliceContainer {
             ptr: raw_errors,
@@ -58,10 +58,15 @@ extern "C" fn transform_callback(
     };
 }
 
-unsafe fn call_ffi_transform(cb_data: *mut TransformInvocationData, go_code: GoString, options: &TransformOptions) -> () {
+unsafe fn call_ffi_transform(
+    cb_data: *mut TransformInvocationData,
+    go_code: GoString,
+    options: &TransformOptions,
+) -> () {
     #[cfg(target_env = "msvc")]
     #[allow(non_snake_case)]
-    let GoTransform = std::mem::transmute::<_, GoTransform>(crate::bridge::DLL.get_function("GoTransform"));
+    let GoTransform =
+        std::mem::transmute::<_, GoTransform>(crate::bridge::DLL.get_function("GoTransform"));
 
     // We can safely convert anything in TransformOptions into raw pointers, as the memory is managed the the Arc and we only used owned values.
     GoTransform(
@@ -74,7 +79,8 @@ unsafe fn call_ffi_transform(cb_data: *mut TransformInvocationData, go_code: GoS
 }
 
 pub unsafe fn transform_direct_unmanaged<F>(code: &[u8], options: &TransformOptions, cb: F) -> ()
-    where F: FnOnce(TransformResult),
+where
+    F: FnOnce(TransformResult),
 {
     // Prepare code.
     let go_code = GoString::from_bytes_unmanaged(code);
@@ -137,8 +143,9 @@ pub unsafe fn transform_direct_unmanaged<F>(code: &[u8], options: &TransformOpti
 /// }
 /// ```
 pub fn transform_direct<F>(code: Arc<Vec<u8>>, options: Arc<TransformOptions>, cb: F) -> ()
-    where F: FnOnce(TransformResult),
-          F: Send + 'static,
+where
+    F: FnOnce(TransformResult),
+    F: Send + 'static,
 {
     // Prepare code.
     let go_code = unsafe { GoString::from_bytes_unmanaged(&code) };
@@ -154,7 +161,9 @@ pub fn transform_direct<F>(code: Arc<Vec<u8>>, options: Arc<TransformOptions>, c
         cb_trait_ptr: cb_trait_ptr as *mut c_void,
     }));
 
-    unsafe { call_ffi_transform(data, go_code, options.as_ref()); };
+    unsafe {
+        call_ffi_transform(data, go_code, options.as_ref());
+    };
 }
 
 struct TransformFutureState {
@@ -208,9 +217,7 @@ pub fn transform(code: Arc<Vec<u8>>, options: Arc<TransformOptions>) -> Transfor
             waker.wake();
         };
     });
-    TransformFuture {
-        state,
-    }
+    TransformFuture { state }
 }
 
 impl Future for TransformFuture {

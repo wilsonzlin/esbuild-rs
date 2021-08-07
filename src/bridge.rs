@@ -301,14 +301,14 @@ macro_rules! declare_ffi_fn {
     )
 }
 
-declare_ffi_fn!(GoBuild (
+declare_ffi_fn!(GoBuild(
     alloc: Allocator,
     cb: BuildApiCallback,
     cb_data: *mut c_void,
     opt: *const FfiapiBuildOptions,
 ));
 
-declare_ffi_fn!(GoTransform (
+declare_ffi_fn!(GoTransform(
     alloc: Allocator,
     cb: TransformApiCallback,
     cb_data: *mut c_void,

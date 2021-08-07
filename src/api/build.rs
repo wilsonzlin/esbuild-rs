@@ -29,8 +29,8 @@ extern "C" fn build_callback(
         // Drop refcount.
         let _: Arc<BuildOptions> = Arc::from_raw(cb_data.opt_arc_raw);
 
-        let rust_cb_trait_box: Box<Box<dyn FnOnce(BuildResult)>>
-            = Box::from_raw(cb_data.cb_trait_ptr as *mut _);
+        let rust_cb_trait_box: Box<Box<dyn FnOnce(BuildResult)>> =
+            Box::from_raw(cb_data.cb_trait_ptr as *mut _);
 
         let output_files = SliceContainer {
             ptr: raw_output_files,
@@ -92,8 +92,9 @@ extern "C" fn build_callback(
 /// }
 /// ```
 pub fn build_direct<F>(options: Arc<BuildOptions>, cb: F) -> ()
-    where F: FnOnce(BuildResult),
-          F: Send + 'static,
+where
+    F: FnOnce(BuildResult),
+    F: Send + 'static,
 {
     // Prepare callback.
     let cb_box = Box::new(cb) as Box<dyn FnOnce(BuildResult)>;
@@ -166,9 +167,7 @@ pub fn build(options: Arc<BuildOptions>) -> BuildFuture {
             waker.wake();
         };
     });
-    BuildFuture {
-        state,
-    }
+    BuildFuture { state }
 }
 
 impl Future for BuildFuture {

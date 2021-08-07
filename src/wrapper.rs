@@ -1,15 +1,19 @@
-use std::{convert, fmt, slice, str};
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::os::raw::{c_char, c_void};
 use std::sync::Arc;
+use std::{convert, fmt, slice, str};
 
 use libc::{ptrdiff_t, size_t};
 
-use crate::bridge::{FfiapiBuildOptions, FfiapiMapStringStringEntry, FfiapiEngine, FfiapiGoStringGoSlice, FfiapiLoader, FfiapiTransformOptions, get_allocation_pointer, GoString, FfiapiEntryPoint};
+use crate::bridge::{
+    get_allocation_pointer, FfiapiBuildOptions, FfiapiEngine, FfiapiEntryPoint,
+    FfiapiGoStringGoSlice, FfiapiLoader, FfiapiMapStringStringEntry, FfiapiTransformOptions,
+    GoString,
+};
 
 #[inline(always)]
-fn transform<I, S: IntoIterator<Item=I>, O, T: Fn(I) -> O>(src: S, mapper: T) -> Vec<O> {
+fn transform<I, S: IntoIterator<Item = I>, O, T: Fn(I) -> O>(src: S, mapper: T) -> Vec<O> {
     src.into_iter().map(mapper).collect::<Vec<O>>()
 }
 
@@ -22,9 +26,7 @@ pub struct SliceContainer<T> {
 
 impl<T> SliceContainer<T> {
     pub fn as_slice(&self) -> &[T] {
-        unsafe {
-            slice::from_raw_parts(self.ptr, self.len)
-        }
+        unsafe { slice::from_raw_parts(self.ptr, self.len) }
     }
 }
 
@@ -43,7 +45,7 @@ impl<T> Drop for SliceContainer<T> {
         unsafe {
             for i in 0..self.len {
                 drop(self.ptr.offset(i as isize));
-            };
+            }
             // We pass `malloc` to Go as the allocator.
             libc::free(self.ptr as *mut c_void);
         };
@@ -60,9 +62,7 @@ pub struct StrContainer {
 
 impl StrContainer {
     pub fn as_str(&self) -> &str {
-        unsafe {
-            str::from_utf8_unchecked(slice::from_raw_parts(self.data as *mut u8, self.len))
-        }
+        unsafe { str::from_utf8_unchecked(slice::from_raw_parts(self.data as *mut u8, self.len)) }
     }
 }
 
@@ -97,7 +97,14 @@ pub struct Message {
 
 impl Display for Message {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{} [{}:{}:{}]", self.text.as_str(), self.file.as_str(), self.line, self.column)
+        write!(
+            f,
+            "{} [{}:{}:{}]",
+            self.text.as_str(),
+            self.file.as_str(),
+            self.line,
+            self.column
+        )
     }
 }
 
@@ -376,7 +383,7 @@ impl BuildOptionsBuilder {
             entry_points_advanced: vec![],
             write: false,
             allow_overwrite: false,
-            incremental: false
+            incremental: false,
         }
     }
 
@@ -401,7 +408,10 @@ impl BuildOptionsBuilder {
             loader: transform(self.loader, FfiapiLoader::from_map_entry),
             resolve_extensions: transform(self.resolve_extensions, GoString::from_string),
             tsconfig: self.tsconfig,
-            out_extensions: transform(self.out_extensions, FfiapiMapStringStringEntry::from_map_entry),
+            out_extensions: transform(
+                self.out_extensions,
+                FfiapiMapStringStringEntry::from_map_entry,
+            ),
             public_path: self.public_path,
             inject: transform(self.inject, GoString::from_string),
             banner: transform(self.banner, FfiapiMapStringStringEntry::from_map_entry),
@@ -411,7 +421,10 @@ impl BuildOptionsBuilder {
             chunk_names: self.chunk_names,
             asset_names: self.asset_names,
             entry_points: transform(self.entry_points, GoString::from_string),
-            entry_points_advanced: transform(self.entry_points_advanced, FfiapiEntryPoint::from_entry_point),
+            entry_points_advanced: transform(
+                self.entry_points_advanced,
+                FfiapiEntryPoint::from_entry_point,
+            ),
             ffiapi_ptr: std::ptr::null(),
         });
 
@@ -457,7 +470,9 @@ impl BuildOptionsBuilder {
                 conditions: FfiapiGoStringGoSlice::from_vec_unamanged(&res.conditions),
                 loader: get_allocation_pointer(&res.loader),
                 loader_len: res.loader.len(),
-                resolve_extensions: FfiapiGoStringGoSlice::from_vec_unamanged(&res.resolve_extensions),
+                resolve_extensions: FfiapiGoStringGoSlice::from_vec_unamanged(
+                    &res.resolve_extensions,
+                ),
                 tsconfig: GoString::from_bytes_unmanaged(res.tsconfig.as_bytes()),
                 out_extensions: get_allocation_pointer(&res.out_extensions),
                 out_extensions_len: res.out_extensions.len(),
@@ -582,7 +597,7 @@ impl TransformOptionsBuilder {
             pure: vec![],
             keep_names: false,
             source_file: "".to_string(),
-            loader: Loader::None
+            loader: Loader::None,
         }
     }
 
