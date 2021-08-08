@@ -177,6 +177,7 @@ pub enum Loader {
 pub enum Platform {
     Browser,
     Node,
+    Neutral,
 }
 
 #[derive(Copy, Clone)]
@@ -185,6 +186,7 @@ pub enum SourceMap {
     Inline,
     Linked,
     External,
+    InlineAndExternal,
 }
 
 #[derive(Copy, Clone)]
@@ -195,6 +197,7 @@ pub enum SourcesContent {
 
 #[derive(Copy, Clone)]
 pub enum Target {
+    Default,
     ESNext,
     ES5,
     ES2015,
@@ -203,6 +206,7 @@ pub enum Target {
     ES2018,
     ES2019,
     ES2020,
+    ES2021,
 }
 
 #[derive(Copy, Clone)]
@@ -339,7 +343,7 @@ impl BuildOptionsBuilder {
             source_map: SourceMap::None,
             source_root: "".to_string(),
             sources_content: SourcesContent::Include,
-            target: Target::ESNext,
+            target: Target::Default,
             engines: vec![],
             minify_whitespace: false,
             minify_identifiers: false,
@@ -577,7 +581,7 @@ impl TransformOptionsBuilder {
             source_map: SourceMap::None,
             source_root: "".to_string(),
             sources_content: SourcesContent::Include,
-            target: Target::ESNext,
+            target: Target::Default,
             format: Format::Default,
             global_name: "".to_string(),
             engines: vec![],
