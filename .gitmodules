@@ -1,3 +1,3 @@
 [submodule "esbuild-lib"]
 	path = lib/vendor/github.com/evanw/esbuild
-	url = git@github.com:wilsonzlin/esbuild-lib.git
+	url = https://github.com/wilsonzlin/esbuild-lib.git
