@@ -6,6 +6,7 @@ use std::task::{Context, Poll, Waker};
 
 use libc::size_t;
 
+use crate::StrContainer;
 use crate::bridge::GoBuild;
 use crate::wrapper::{BuildOptions, BuildResult, Message, OutputFile, SliceContainer};
 
@@ -16,6 +17,7 @@ struct BuildInvocationData {
 
 extern "C" fn build_callback(
     raw_cb_data: *mut c_void,
+    metafile: StrContainer,
     raw_output_files: *mut OutputFile,
     output_files_len: size_t,
     raw_errors: *mut Message,
@@ -46,6 +48,7 @@ extern "C" fn build_callback(
         };
 
         rust_cb_trait_box(BuildResult {
+            metafile,
             output_files,
             errors,
             warnings,
@@ -80,12 +83,13 @@ extern "C" fn build_callback(
 /// fn main() {
 ///   let mut options_builder = BuildOptionsBuilder::new();
 ///   options_builder.entry_points.push("index.js".to_string());
+///   options_builder.metafile = true;
 ///   let options = options_builder.build();
 ///
 ///   let wg = WaitGroup::new();
 ///   let task = wg.clone();
-///   build_direct(options, |BuildResult { output_files, errors, warnings }| {
-///     println!("Build complete!");
+///   build_direct(options, |BuildResult { metafile, output_files, errors, warnings }| {
+///     println!("Build complete! Metadata: {}", metafile);
 ///     drop(task);
 ///   });
 ///   wg.wait();

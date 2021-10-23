@@ -76,6 +76,12 @@ impl convert::AsRef<str> for StrContainer {
     }
 }
 
+impl Display for StrContainer {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        self.as_ref().fmt(f)
+    }
+}
+
 impl Drop for StrContainer {
     fn drop(&mut self) {
         unsafe {
@@ -212,7 +218,8 @@ pub enum Target {
 #[derive(Copy, Clone)]
 pub enum TreeShaking {
     Default,
-    IgnoreAnnotations,
+    False,
+    True,
 }
 
 #[derive(Clone)]
@@ -246,6 +253,7 @@ pub struct BuildOptionsBuilder {
     pub minify_syntax: bool,
     pub charset: Charset,
     pub tree_shaking: TreeShaking,
+    pub ignore_annotations: bool,
     pub legal_comments: LegalComments,
 
     pub jsx_mode: JSXMode,
@@ -350,6 +358,7 @@ impl BuildOptionsBuilder {
             minify_syntax: false,
             charset: Charset::Default,
             tree_shaking: TreeShaking::Default,
+            ignore_annotations: false,
             legal_comments: LegalComments::Default,
             jsx_mode: JSXMode::Transform,
             jsx_factory: "".to_string(),
@@ -447,6 +456,7 @@ impl BuildOptionsBuilder {
                 minify_syntax: self.minify_syntax,
                 charset: self.charset as u8,
                 tree_shaking: self.tree_shaking as u8,
+                ignore_annotations: self.ignore_annotations,
                 legal_comments: self.legal_comments as u8,
 
                 jsx_mode: self.jsx_mode as u8,
@@ -508,6 +518,7 @@ impl BuildOptionsBuilder {
 }
 
 pub struct BuildResult {
+    pub metafile: StrContainer,
     pub output_files: SliceContainer<OutputFile>,
     pub errors: SliceContainer<Message>,
     pub warnings: SliceContainer<Message>,
@@ -529,6 +540,7 @@ pub struct TransformOptionsBuilder {
     pub minify_syntax: bool,
     pub charset: Charset,
     pub tree_shaking: TreeShaking,
+    pub ignore_annotations: bool,
     pub legal_comments: LegalComments,
 
     pub jsx_mode: JSXMode,
@@ -590,6 +602,7 @@ impl TransformOptionsBuilder {
             minify_syntax: false,
             charset: Charset::Default,
             tree_shaking: TreeShaking::Default,
+            ignore_annotations: false,
             legal_comments: LegalComments::Default,
             jsx_mode: JSXMode::Transform,
             jsx_factory: "".to_string(),
@@ -640,6 +653,7 @@ impl TransformOptionsBuilder {
                 minify_syntax: self.minify_syntax,
                 charset: self.charset as u8,
                 tree_shaking: self.tree_shaking as u8,
+                ignore_annotations: self.ignore_annotations,
                 legal_comments: self.legal_comments as u8,
 
                 jsx_mode: self.jsx_mode as u8,

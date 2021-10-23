@@ -135,6 +135,7 @@ pub type Allocator = unsafe extern "C" fn(n: size_t) -> *mut c_void;
 
 pub type BuildApiCallback = extern "C" fn(
     cb_data: *mut c_void,
+    metafile: StrContainer,
     output_files: *mut OutputFile,
     output_files_len: size_t,
     errors: *mut Message,
@@ -168,6 +169,7 @@ pub struct FfiapiBuildOptions {
     pub minify_syntax: bool,
     pub charset: u8,
     pub tree_shaking: u8,
+    pub ignore_annotations: bool,
     pub legal_comments: u8,
 
     pub jsx_mode: u8,
@@ -245,6 +247,7 @@ pub struct FfiapiTransformOptions {
     pub minify_syntax: bool,
     pub charset: u8,
     pub tree_shaking: u8,
+    pub ignore_annotations: bool,
     pub legal_comments: u8,
 
     pub jsx_mode: u8,
