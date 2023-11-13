@@ -10,7 +10,7 @@ Check the [docs](https://docs.rs/esbuild-rs/) for the API.
 
 ## Async
 
-A fork of [esbuild](https://github.com/wilsonzlin/esbuild-lib) is used to allow taking advantage of the Go scheduler for optimal concurrency. Friendly functions that use Futures are available, which are suitable for most cases; for advanced usage, direct functions that take a callback and return immediately are also available, requiring additional concurrency management on top.
+A [fork of esbuild](https://github.com/wilsonzlin/esbuild-lib) is used to allow taking advantage of the Go scheduler for optimal concurrency. Friendly functions that use Futures are available, which are suitable for most cases; for advanced usage, direct functions that take a callback and return immediately are also available, requiring additional concurrency management on top.
 
 ## Windows
 
